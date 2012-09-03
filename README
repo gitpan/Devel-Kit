@@ -32,7 +32,7 @@ Copyright (C) 2012, Daniel Muey
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
 
-Note to self about v0.2 && building:
+Note to self about building:
 
     perltidy -b t/00.load.t t/01.import.t t/02.functions.t
     rm -f t/00.load.t.bak t/01.import.t.bak t/02.functions.t.bak
@@ -43,19 +43,7 @@ Note to self about v0.2 && building:
     cp t/01.import.t t/01.import-TAP.t
     cp t/01.import.t t/01.import-cPanel.t
 
-    cp t/02.functions.t t/02.functions-TAP.t
-    cp t/02.functions.t t/02.functions-cPanel.t
+    perl -pi -e 's{Devel::Kit}{Devel::Kit::TAP}g'  t/00.load-TAP.t  t/01.import-TAP.t
+    perl -pi -e 's{Devel::Kit}{Devel::Kit::cPanel}g'  t/00.load-cPanel.t  t/01.import-cPanel.t
 
-    perl -pi -e 's{Devel::Kit}{Devel::Kit::TAP}g'  t/00.load-TAP.t  t/01.import-TAP.t t/02.functions-TAP.t
-    perl -pi -e 's{Devel::Kit}{Devel::Kit::cPanel}g'  t/00.load-cPanel.t  t/01.import-cPanel.t t/02.functions-cPanel.t
-
-    perl -pi -e 's{(use\s*Test::More.*)}{$1\neval "require Cpanel::Logger;";plan skip_all => "tests irrelevant on non-cPanel environment" if \$@;\n}g'  t/00.load-cPanel.t  t/01.import-cPanel.t t/02.functions-cPanel.t
-    
-    MANIFEST:
-    
-        t/00.load-TAP.t
-        t/00.load-cPanel.t
-        t/01.import-TAP.t
-        t/01.import-cPanel.t
-        t/02.functions-TAP.t
-        t/02.functions-cPanel.t
+    perl -pi -e 's{(use\s*Test::More.*)}{$1\nBEGIN { eval "require Cpanel::Logger;";plan skip_all => "tests irrelevant on non-cPanel environment" if \$@; };\n}g'  t/00.load-cPanel.t  t/01.import-cPanel.t

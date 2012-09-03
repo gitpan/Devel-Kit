@@ -45,7 +45,7 @@
             "MIME::Base64" : 0,
             "MIME::QuotedPrint" : 0,
             "Module::Want" : 0,
-            "Net::LibIDN" : 0,
+            "Net::IDN::Encode" : 0,
             "Storable" : 0,
             "Test::More" : 0,
             "URI::Escape" : 0,
@@ -55,5 +55,5 @@
       }
    },
    "release_status" : "stable",
-   "version" : "0.1"
+   "version" : "0.2"
 }

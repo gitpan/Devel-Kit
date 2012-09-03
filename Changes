@@ -3,3 +3,9 @@ Revision history for Devel-Kit
 0.1  Thu May  3 21:28:17 2012
        Initial release (@ YAPC::EU Wed Aug 22 15:26:18 CEST 2012)
 
+0.2  Sat Aug 25 10:33:03 CEST 2012
+    - use more universally installable punycode module
+    - tests for @ behaviors
+    - rt 79159: POD fixes, thanks Kevin!
+    - Sub class tests (minor snafu on that and I wanted it out initially during YAPC::EU 2012) README has notes-to-self
+    - adjust test regexp to try and address erroneous failure on cpantesters.org 4cb7b3be-6f98-1014-af33-fcab386ac21f

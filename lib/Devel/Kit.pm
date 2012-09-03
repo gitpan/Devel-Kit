@@ -5,7 +5,7 @@ use warnings;
 
 use Module::Want ();
 
-$Devel::Kit::VERSION = '0.1';
+$Devel::Kit::VERSION = '0.2';
 $Devel::Kit::fh      = \*STDOUT;
 
 sub import {
@@ -578,24 +578,25 @@ sub pe {
     my $ret = $_[-1] eq '_Devel::Kit_return' ? 1 : 0;
 
     @_ = _at_setup(
-        'Net::LibIDN',
+        'Net::IDN::Encode',
         sub {
             my ($s) = $_[0];
             utf8::encode($s) if utf8::is_utf8($s);
 
             # See Locale::Maketext::Utils::output_encode_puny()
-            if ( $s =~ m/\@/ ) {
-                my ( $nam, $dom ) = split( /@/, $s, 2 );
+            if ( $s =~ m/(\@|\xef\xbc\xa0|\xef\xb9\xab)/ ) {    # U+0040, U+FF20, and U+FE6B, no need for U+E0040 right?
+                my $at = $1;
+                my ( $nam, $dom ) = split( /$at/, $s, 2 );
 
                 # TODO: ? multiple @ signs ...
                 # my ($dom,$nam) = split(/\@/,reverse($s),2);
                 # $dom = reverse($dom);
                 # $nam = reverse($nam);
-                return Net::LibIDN::idn_to_ascii( $nam, 'utf-8' ) . '@' . Net::LibIDN::idn_to_ascii( $dom, 'utf-8' );
+                return "Punycode: " . Net::IDN::Punycode::encode_punycode($nam) . '@xn--' . Net::IDN::Punycode::encode_punycode($dom);
             }
 
             # this will act funny if there are @ symbols:
-            return "Punycode: " . Net::LibIDN::idn_to_ascii( $s, 'utf-8' );
+            return "Punycode: xn--" . Net::IDN::Punycode::encode_punycode($s);
         },
         @_
     );
@@ -608,7 +609,7 @@ sub pu {
     my $ret = $_[-1] eq '_Devel::Kit_return' ? 1 : 0;
 
     @_ = _at_setup(
-        'Net::LibIDN',
+        'Net::IDN::Encode',
         sub {
             my ($s) = $_[0];
             utf8::encode($s) if utf8::is_utf8($s);
@@ -621,11 +622,14 @@ sub pu {
                 # my ($dom,$nam) = split(/\@/,reverse($s),2);
                 # $dom = reverse($dom);
                 # $nam = reverse($nam);
-                return Net::LibIDN::idn_to_unicode( $nam, 'utf-8' ) . '@' . Net::LibIDN::idn_to_unicode( $dom, 'utf-8' );
+                $dom =~ s/^xn\--//;
+                return "From Punycode: " . Net::IDN::Punycode::decode_punycode($nam) . '@' . Net::IDN::Punycode::decode_punycode($dom);
             }
 
+            $s =~ s/^xn\--//;
+
             # this will act funny if there are @ symbols:
-            return "From Punycode: " . Net::LibIDN::idn_to_unicode( $s, 'utf-8' );
+            return "From Punycode: " . Net::IDN::Punycode::decode_punycode($s);
         },
         @_
     );
@@ -743,7 +747,7 @@ Devel::Kit - Handy toolbox of things to ease development/debugging.
 
 =head1 VERSION
 
-This document describes Devel::Kit version 0.1
+This document describes Devel::Kit version 0.2
 
 =head1 SYNOPSIS
 
@@ -759,10 +763,10 @@ This document describes Devel::Kit version 0.1
 
     perl -MDevel::Kit -e 'd();d(undef);d("");d(1);d("i got here");d({a=>1},[1,2,3],"yo",\"howdy");ud("I \x{2665} perl");bd("I \xe2\x99\xa5 perl");gd("I ♥ perl");'
 
-See where you are or are not getting to in a program and why, for example via thie pseudo patch:
+See where you are or are not getting to in a program and why, for example via this pseudo patch:
 
     + d(1);
-    + d($foo);
+    + d(\$foo);
     
     bar();
     
@@ -824,7 +828,7 @@ import() enables strict and warnings in the caller unless you pass the string �
 
 =head2 imported functions
 
-If you already have a function by these names you can pass "_" to import() whick will import them all w/ an underscore prepended. You can pass "__" to have it prepend 2, "---" to prepend 3, ad infinitum.
+If you already have a function by these names you can pass "_" to import() which will import them all w/ an underscore prepended. You can pass "__" to have it prepend 2, "___" to prepend 3, ad infinitum.
 
 =head3 d() General debug/dump
 
@@ -832,41 +836,41 @@ Takes zero or more arguments to do debug info on.
 
 The arguments can be a scalar or any perl reference you like.
 
-It’s output is handled by L<Devel::Kit::o()> and references are stringified by L<Devel::Kit::p()>.
+It’s output is handled by L</Devel::Kit::o()> and references are stringified by L</Devel::Kit::p()>.
 
 =head3 Data Format dumpers
 
 If a function ends in “d” it is a dumper. Each takes one argument, the string in the format we’re dumping. 
 
-Like d() it’s output is handled by L<Devel::Kit::o()> and references are stringified by L<Devel::Kit::p()>.
+Like d() it’s output is handled by L</Devel::Kit::o()> and references are stringified by L</Devel::Kit::p()>.
 
 =head4 yd() YAML dumper
 
-    perl -MDevel::Kit -e 'qd($your_yaml_here)' 
+    perl -MDevel::Kit -e 'yd($your_yaml_here)' 
 
 =head4 jd() JSON dumper
 
-    perl -MDevel::Kit -e 'qd($your_json_here)' 
+    perl -MDevel::Kit -e 'jd($your_json_here)' 
 
 =head4 xd() XML dumper
 
-    perl -MDevel::Kit -e 'qd($your_xml_here)' 
+    perl -MDevel::Kit -e 'xd($your_xml_here)' 
 
 =head4 sd() Storable dumper
 
-    perl -MDevel::Kit -e 'qd($your_storable_here)' 
+    perl -MDevel::Kit -e 'sd($your_storable_here)' 
 
 =head4 id() INI dumper
 
-    perl -MDevel::Kit -e 'qd($your_ini_here)' 
+    perl -MDevel::Kit -e 'id($your_ini_here)' 
 
 =head4 md() MessagePack dumper
 
-    perl -MDevel::Kit -e 'qd($your_message_pack_here)' 
+    perl -MDevel::Kit -e 'md($your_message_pack_here)' 
 
 =head4 pd() Perl (stringified) dumper
 
-    perl -MDevel::Kit -e 'qd($your_stringified_perl_structure_here)' 
+    perl -MDevel::Kit -e 'pd($your_stringified_perl_structure_here)' 
 
 =head3 File system
 
@@ -874,15 +878,15 @@ These dump information about the path given.
 
 =head4 fd() File dumper
 
-    perl -MDevel::Kit -e 'qd($your_file_here)' 
+    perl -MDevel::Kit -e 'fd($your_file_here)' 
 
 =head4 dd() Directory dumper
 
-    perl -MDevel::Kit -e 'qd($your_fdirectory_here)' 
+    perl -MDevel::Kit -e 'dd($your_directory_here)' 
 
 =head4 ld() Link dumper (i.e. symlinks)
 
-    perl -MDevel::Kit -e 'qd($your_symlink_here)' 
+    perl -MDevel::Kit -e 'ld($your_symlink_here)' 
 
 =head3 String Representations
 
@@ -918,7 +922,7 @@ Unicode strings are turned into utf-8 before summing (since you can’t sum a Un
 
 =head3 Escape/Unescape Encode/Unencode
 
-Unicode strings are turned into utf-8 before for consistency and since some, if not all, need to operate on bytes.
+Unicode strings are turned into utf-8 before operatign on it for consistency and since some, if not all, need to operate on bytes.
 
 =head4 be() bu() Base64
 
@@ -927,8 +931,8 @@ Unicode strings are turned into utf-8 before for consistency and since some, if 
 
 =head4 ue() uu() URI
 
-    perl -MDevel::Kit -e 'be($your_string_here)' 
-    perl -MDevel::Kit -e 'bu($your_uri_here)'
+    perl -MDevel::Kit -e 'ue($your_string_here)' 
+    perl -MDevel::Kit -e 'uu($your_uri_here)'
 
 =head4 he() hu() HTML
 
@@ -942,12 +946,12 @@ Unicode strings are turned into utf-8 before for consistency and since some, if 
 
 =head4 qe() qu() quoted-printable
 
-    perl -MDevel::Kit -e 'pe($your_string_here)' 
-    perl -MDevel::Kit -e 'pu($your_uoted_printable_here)'
+    perl -MDevel::Kit -e 'qe($your_string_here)' 
+    perl -MDevel::Kit -e 'qu($your_uoted_printable_here)'
 
 =head4 se() su() String escaped for perl
 
-This will be in v0.2 or so
+se() and su() will be in v0.3 or so
 
 =head2 non-imported functions
 
@@ -976,14 +980,6 @@ Devel::Kit requires no configuration files or environment variables.
 L<Import::Into> for the strict/warnings.
 
 L<Module::Want> to lazy load the various parsers and what not:
-
-=head1 SUBCLASSES
-
-It includes 2 sub classes that can be used as guides on how to create your own context specific subclass:
-
-L<Devel::Kit::TAP> for testing context (function based).
-
-L<Devel::Kit::cPanel> for cPanel context (method based).
 
 =over 4
 
@@ -1015,6 +1011,14 @@ L<Devel::Kit::cPanel> for cPanel context (method based).
 
 =back
 
+=head1 SUBCLASSES
+
+It includes 2 sub classes that can be used as guides on how to create your own context specific subclass:
+
+L<Devel::Kit::TAP> for testing context (using a function based output).
+
+L<Devel::Kit::cPanel> for cPanel context (using a method based output).
+
 =head1 INCOMPATIBILITIES
 
 None reported.
@@ -1029,17 +1033,23 @@ L<http://rt.cpan.org>.
 
 =head1 TODO
 
-Namespace and variable dumpers via things like L<Class::Inspector>, L<Devel::Peek>, and L<Devel::Size>.
+=over 4
 
-*d() functions could use corresponding d*() functions (e.g. dy() would dump as YAML …)
+=item * Namespace and variable dumpers via things like L<Class::Inspector>, L<Devel::Peek>, and L<Devel::Size>.
 
-Stringified Data dumpers also take path or handle in addition to a string.
+=item * *d() functions could use corresponding d*() functions (e.g. dy() would dump as YAML …)
 
-Use Regexp::Debugger (i.e. `rxrx` to be released @ 2012 OSCON) or some other Regexp dumper.
+=item * Stringified Data dumpers also take path or handle in addition to a string.
 
-string parser/dumpers make apparent what it was (i.e. YAML, XML, etc)
+=item * Use Regexp::Debugger (i.e. `rxrx` to be released @ 2012 OSCON) or some other Regexp dumper.
 
-Sub class tests (minor snafu on that and I wanted it out initially during YAPC::EU 2012) README has notes-to-self
+=item * string parser/dumpers make apparent what it was (i.e. YAML, XML, etc)
+
+=item * se() and su() as noted in their POD
+
+=item * Sort out punycode “standard” issues.
+
+=back
 
 =head1 AUTHOR
 

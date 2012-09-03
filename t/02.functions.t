@@ -43,30 +43,30 @@ if ($symlinks_supported) {
 my @filesys = (
     [
         'fd',
-        qr{\'File “\Q$tmp_file\E”:\' \=\> \{.* 0\. dev.*\n.* 1\. ino.*\n.* 2\. mode.*\n.* 3\. nlink.*\n.* 4\. uid.*\n.* 5\. gid.*\n.* 6\. rdev.*\n.* 7\. size.*\n.* 8\. atime.*\n.* 9\. mtime.*\n.*10\. ctime.*\n.*11\. blksize.*\n.*12\. blocks.*\n.*13\. contents}s,    # -e file
-        qr/debug\(\): “\Q$tmp_dir\E” is not a file\./,                                                                                                                                                                                                                    # -e dir
-        qr/debug\(\): “\Q$tmp_none\E” does not exist\./,                                                                                                                                                                                                                  # !-e file|dir
-        qr/debug\(\): “\Q$tmp_symfile\E” is not a file\./,                                                                                                                                                                                                                # -l target exists file
-        qr/debug\(\): “\Q$tmp_symdir\E” is not a file\./,                                                                                                                                                                                                                 # -l target exists dir
-        qr/debug\(\): “\Q$tmp_broken\E” is not a file\./,                                                                                                                                                                                                                 # -l target !exists
+        qr{\'File “\Q$tmp_file\E”:\' \=\> \{.*\n.* 0\. dev.*\n.* 1\. ino.*\n.* 2\. mode.*\n.* 3\. nlink.*\n.* 4\. uid.*\n.* 5\. gid.*\n.* 6\. rdev.*\n.* 7\. size.*\n.* 8\. atime.*\n.* 9\. mtime.*\n.*10\. ctime.*\n.*11\. blksize.*\n.*12\. blocks.*\n.*13\. contents}s,    # -e file
+        qr/debug\(\): “\Q$tmp_dir\E” is not a file\./,                                                                                                                                                                                                                        # -e dir
+        qr/debug\(\): “\Q$tmp_none\E” does not exist\./,                                                                                                                                                                                                                      # !-e file|dir
+        qr/debug\(\): “\Q$tmp_symfile\E” is not a file\./,                                                                                                                                                                                                                    # -l target exists file
+        qr/debug\(\): “\Q$tmp_symdir\E” is not a file\./,                                                                                                                                                                                                                     # -l target exists dir
+        qr/debug\(\): “\Q$tmp_broken\E” is not a file\./,                                                                                                                                                                                                                     # -l target !exists
     ],
     [
         'dd',
-        qr/debug\(\): “\Q$tmp_file\E” is not a directory\./,                                                                                                                                                                                                                  # -e file
-        qr{\'Directory “\Q$tmp_dir\E”:\' \=\> \{.* 0\. dev.*\n.* 1\. ino.*\n.* 2\. mode.*\n.* 3\. nlink.*\n.* 4\. uid.*\n.* 5\. gid.*\n.* 6\. rdev.*\n.* 7\. size.*\n.* 8\. atime.*\n.* 9\. mtime.*\n.*10\. ctime.*\n.*11\. blksize.*\n.*12\. blocks.*\n.*13\. contents}s,    # -e dir
-        qr/debug\(\): “\Q$tmp_none\E” does not exist\./,                                                                                                                                                                                                                      # !-e file|dir
-        qr/debug\(\): “\Q$tmp_symfile\E” is not a directory\./,                                                                                                                                                                                                               # -l target exists file
-        qr/debug\(\): “\Q$tmp_symdir\E” is not a directory\./,                                                                                                                                                                                                                # -l target exists dir
-        qr/debug\(\): “\Q$tmp_broken\E” is not a directory\./,                                                                                                                                                                                                                # -l target !exists
+        qr/debug\(\): “\Q$tmp_file\E” is not a directory\./,                                                                                                                                                                                                                      # -e file
+        qr{\'Directory “\Q$tmp_dir\E”:\' \=\> \{.*\n.* 0\. dev.*\n.* 1\. ino.*\n.* 2\. mode.*\n.* 3\. nlink.*\n.* 4\. uid.*\n.* 5\. gid.*\n.* 6\. rdev.*\n.* 7\. size.*\n.* 8\. atime.*\n.* 9\. mtime.*\n.*10\. ctime.*\n.*11\. blksize.*\n.*12\. blocks.*\n.*13\. contents}s,    # -e dir
+        qr/debug\(\): “\Q$tmp_none\E” does not exist\./,                                                                                                                                                                                                                          # !-e file|dir
+        qr/debug\(\): “\Q$tmp_symfile\E” is not a directory\./,                                                                                                                                                                                                                   # -l target exists file
+        qr/debug\(\): “\Q$tmp_symdir\E” is not a directory\./,                                                                                                                                                                                                                    # -l target exists dir
+        qr/debug\(\): “\Q$tmp_broken\E” is not a directory\./,                                                                                                                                                                                                                    # -l target !exists
     ],
     [
         'ld',
-        qr/debug\(\): “\Q$tmp_file\E” is not a symlink\./,                                                                                                                                                                                                                                               # -e file
-        qr/debug\(\): “\Q$tmp_dir\E” is not a symlink\./,                                                                                                                                                                                                                                                # -e dir
-        qr/debug\(\): “\Q$tmp_none\E” does not exist\./,                                                                                                                                                                                                                                                 # !-e file|dir
-        qr{\'Symlink “\Q$tmp_symfile\E”:\' \=\> \{.* 0\. dev.*\n.* 1\. ino.*\n.* 2\. mode.*\n.* 3\. nlink.*\n.* 4\. uid.*\n.* 5\. gid.*\n.* 6\. rdev.*\n.* 7\. size.*\n.* 8\. atime.*\n.* 9\. mtime.*\n.*10\. ctime.*\n.*11\. blksize.*\n.*12\. blocks.*\n.*13\. target.*\n.*14\. broken.*\=\>\s*0}s,    # -l target exists file
-        qr{\'Symlink “\Q$tmp_symdir\E”:\' \=\> \{.* 0\. dev.*\n.* 1\. ino.*\n.* 2\. mode.*\n.* 3\. nlink.*\n.* 4\. uid.*\n.* 5\. gid.*\n.* 6\. rdev.*\n.* 7\. size.*\n.* 8\. atime.*\n.* 9\. mtime.*\n.*10\. ctime.*\n.*11\. blksize.*\n.*12\. blocks.*\n.*13\. target.*\n.*14\. broken.*\=\>\s*0}s,     # -l target exists dir
-        qr{\'Symlink “\Q$tmp_broken\E”:\' \=\> \{.* 0\. dev.*\n.* 1\. ino.*\n.* 2\. mode.*\n.* 3\. nlink.*\n.* 4\. uid.*\n.* 5\. gid.*\n.* 6\. rdev.*\n.* 7\. size.*\n.* 8\. atime.*\n.* 9\. mtime.*\n.*10\. ctime.*\n.*11\. blksize.*\n.*12\. blocks.*\n.*13\. target.*\n.*14\. broken.*\=\>\s*1}s,     # -l target !exists
+        qr/debug\(\): “\Q$tmp_file\E” is not a symlink\./,                                                                                                                                                                                                                                                   # -e file
+        qr/debug\(\): “\Q$tmp_dir\E” is not a symlink\./,                                                                                                                                                                                                                                                    # -e dir
+        qr/debug\(\): “\Q$tmp_none\E” does not exist\./,                                                                                                                                                                                                                                                     # !-e file|dir
+        qr{\'Symlink “\Q$tmp_symfile\E”:\' \=\> \{.*\n.* 0\. dev.*\n.* 1\. ino.*\n.* 2\. mode.*\n.* 3\. nlink.*\n.* 4\. uid.*\n.* 5\. gid.*\n.* 6\. rdev.*\n.* 7\. size.*\n.* 8\. atime.*\n.* 9\. mtime.*\n.*10\. ctime.*\n.*11\. blksize.*\n.*12\. blocks.*\n.*13\. target.*\n.*14\. broken.*\=\>\s*0}s,    # -l target exists file
+        qr{\'Symlink “\Q$tmp_symdir\E”:\' \=\> \{.*\n.* 0\. dev.*\n.* 1\. ino.*\n.* 2\. mode.*\n.* 3\. nlink.*\n.* 4\. uid.*\n.* 5\. gid.*\n.* 6\. rdev.*\n.* 7\. size.*\n.* 8\. atime.*\n.* 9\. mtime.*\n.*10\. ctime.*\n.*11\. blksize.*\n.*12\. blocks.*\n.*13\. target.*\n.*14\. broken.*\=\>\s*0}s,     # -l target exists dir
+        qr{\'Symlink “\Q$tmp_broken\E”:\' \=\> \{.*\n.* 0\. dev.*\n.* 1\. ino.*\n.* 2\. mode.*\n.* 3\. nlink.*\n.* 4\. uid.*\n.* 5\. gid.*\n.* 6\. rdev.*\n.* 7\. size.*\n.* 8\. atime.*\n.* 9\. mtime.*\n.*10\. ctime.*\n.*11\. blksize.*\n.*12\. blocks.*\n.*13\. target.*\n.*14\. broken.*\=\>\s*1}s,     # -l target !exists
     ]
 );
 
@@ -86,18 +86,24 @@ my @sum_hash = (
 );
 
 my @encode_unencode_escape_unescape = (
-    [ 'be', "be",                                      "debug(): Base 64: YmU=\n" ],
-    [ 'bu', "YmU=",                                    "debug(): From Base 64: be\n" ],
-    [ 'ue', "I ♥ perl",                              "debug(): URI: I%20%E2%99%A5%20perl\n" ],
-    [ 'uu', "I%20%E2%99%A5%20perl",                    "debug(): From URI: I ♥ perl\n" ],
-    [ 'he', qq{<I ♥ perl's " & >},                   "debug(): HTML Safe: &lt;I ♥ perl&#39;s &quot; &amp; &gt;\n" ],
-    [ 'hu', "&lt;I ♥ perl&apos;s &quot; &amp; &gt;", qq{debug(): From HTML Safe: <I ♥ perl's " & >\n} ],
-    [ 'qe', "I ♥ perl",                              "debug(): Quoted-Printable: I =E2=99=A5 perl=\n" ],
-    [ 'qu', "I =E2=99=A5 perl=",                       "debug(): From Quoted-Printable: I ♥ perl=\n" ],
-    [ 'pe', "I ♥ perl",                              "debug(): Punycode: xn--i  perl-pm7d\n" ],
-    [ 'pu', "xn--i  perl-pm7d",                        "debug(): From Punycode: i ♥ perl\n" ],
-    [ 'se', "TODO STRING ESCAPE!",                     "debug(): TODO STRING ESCAPE!\n" ],
-    [ 'su', "TODO From STRING UNESCAPE!",              "debug(): TODO From STRING UNESCAPE!\n" ],
+    [ 'be', "be",                                              "debug(): Base 64: YmU=\n" ],
+    [ 'bu', "YmU=",                                            "debug(): From Base 64: be\n" ],
+    [ 'ue', "I ♥ perl",                                      "debug(): URI: I%20%E2%99%A5%20perl\n" ],
+    [ 'uu', "I%20%E2%99%A5%20perl",                            "debug(): From URI: I ♥ perl\n" ],
+    [ 'he', qq{<I ♥ perl's " & >},                           "debug(): HTML Safe: &lt;I ♥ perl&#39;s &quot; &amp; &gt;\n" ],
+    [ 'hu', "&lt;I ♥ perl&apos;s &quot; &amp; &gt;",         qq{debug(): From HTML Safe: <I ♥ perl's " & >\n} ],
+    [ 'qe', "I ♥ perl",                                      "debug(): Quoted-Printable: I =E2=99=A5 perl=\n" ],
+    [ 'qu', "I =E2=99=A5 perl=",                               "debug(): From Quoted-Printable: I ♥ perl=\n" ],
+    [ 'pe', "I.♥.perl",                                      "debug(): Punycode: xn--I..perl-1fa2io1a\n" ],
+    [ 'pe', 'at@commercial.I.♥.perl',                        "debug(): Punycode: at-\@xn--commercial.I..perl-7na4vk1c\n" ],
+    [ 'pe', 'at＠fullwidth.commercial.I.♥.perl',            "debug(): Punycode: at-\@xn--fullwidth.commercial.I..perl-nva47a78d\n" ],
+    [ 'pe', 'at﹫small.commercial.I.♥.perl',                "debug(): Punycode: at-\@xn--small.commercial.I..perl-osa62av0d\n" ],
+    [ 'pu', "xn--I..perl-1fa2io1a",                            "debug(): From Punycode: I.♥.perl\n" ],
+    [ 'pu', "at-\@xn--commercial.I..perl-7na4vk1c",            "debug(): From Punycode: at\@commercial.I.♥.perl\n" ],
+    [ 'pu', "at-\@xn--fullwidth.commercial.I..perl-nva47a78d", "debug(): From Punycode: at\@fullwidth.commercial.I.♥.perl\n" ],
+    [ 'pu', "at-\@xn--small.commercial.I..perl-osa62av0d",     "debug(): From Punycode: at\@small.commercial.I.♥.perl\n" ],
+    [ 'se', "TODO STRING ESCAPE!",                             "debug(): TODO STRING ESCAPE!\n" ],
+    [ 'su', "TODO From STRING UNESCAPE!",                      "debug(): TODO From STRING UNESCAPE!\n" ],
 );
 
 plan tests => 16 + ( 3 * @data_formats ) + @sum_hash + ( 6 * @strings ) + ( 6 * @filesys ) + @encode_unencode_escape_unescape;

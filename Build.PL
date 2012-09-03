@@ -21,14 +21,14 @@ my $builder = Module::Build->new(
         'JSON::Syck' => 0,,
         'XML::Parser' => 0,
         'Storable' => 0,
-        'Data::MessagePack' => 0, 
         'Config::INI::Reader' => 0,
+        'Data::MessagePack' => 0, 
         
         'Digest::MD5' => 0,
         'Digest::SHA' => 0,
         
         'MIME::QuotedPrint' => 0,
-        'Net::LibIDN' => 0, # TODO: optional?
+        'Net::IDN::Encode' => 0,
         'HTML::Entities' => 0,
         'URI::Escape' => 0,
         'MIME::Base64' => 0,
