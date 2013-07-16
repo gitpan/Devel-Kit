@@ -1,5 +1,10 @@
 Revision history for Devel-Kit
 
+0.5  Tue Jul 16 21:34:25 2013
+    - require min version of module want
+    - Add _CODE.pm to manifest
+    - not use 'Devel::Kit' in ni() test to avoid confusion
+    
 0.4  Sun Jul 14 23:13:37 2013
     - Add coderef stat dumping: ci()
     - Add name space dumping support: ni()

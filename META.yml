@@ -36,7 +36,7 @@ requires:
   JSON::Syck: 0
   MIME::Base64: 0
   MIME::QuotedPrint: 0
-  Module::Want: 0
+  Module::Want: 0.5
   Net::IDN::Encode: 0
   Regexp::Debugger: 0
   Storable: 0
@@ -48,4 +48,4 @@ requires:
   Unix::PID::Tiny: 0
   XML::Parser: 0
   YAML::Syck: 0
-version: 0.4
+version: 0.5

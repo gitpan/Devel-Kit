@@ -1,6 +1,7 @@
 Build.PL
 Changes
 lib/Devel/Kit.pm
+lib/Devel/Kit/_CODE.pm
 lib/Devel/Kit/TAP.pm
 lib/Devel/Kit/cPanel.pm
 Makefile.PL

@@ -6,7 +6,7 @@ use warnings;
 use Module::Want        ();
 use String::UnicodeUTF8 ();
 
-$Devel::Kit::VERSION = '0.4';
+$Devel::Kit::VERSION = '0.5';
 $Devel::Kit::fh      = \*STDOUT;
 
 my $pid;
@@ -908,7 +908,7 @@ Devel::Kit - Handy toolbox of things to ease development/debugging.
 
 =head1 VERSION
 
-This document describes Devel::Kit version 0.4
+This document describes Devel::Kit version 0.5
 
 =head1 SYNOPSIS
 

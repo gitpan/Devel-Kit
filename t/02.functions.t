@@ -332,6 +332,7 @@ for my $u (@encode_unencode_escape_unescape) {
     my $sys_cnt = 0;
     local $current_system = sub { $sys_cnt++; goto &Test::Mock::Cmd::orig_system; };
 
+    # TODO (not critical): no Devel::CountOps, no Capture::Tiny, neither Devel::CountOps or  Capture::Tiny'
     my $have_dcp = Module::Want::have_mod('Devel::CountOps');
     my $have_ct  = Module::Want::have_mod('Capture::Tiny');
 
@@ -343,24 +344,22 @@ for my $u (@encode_unencode_escape_unescape) {
     like( $rez, qr/INC Value : “Un::Load::Able::Name::SPACE::X${$}Y” is not loadable/, "ni() unloadable NS error" );
     is( $sys_cnt, 0, "ni() unloadable NS does not get to sys" );
 
-    ($rez) = ni( 'Devel\'Kit', '_Devel::Kit_return' );
-    like( $rez, qr/^Devel\'Kit/,                          "ni() basic: 1st line" );
-    like( $rez, qr/Normalized: Devel::Kit/,               "ni() basic: Normalized" );
-    like( $rez, qr/Dist Name : Devel-Kit/,                "ni() basic: Dist Name" );
-    like( $rez, qr/INC Key   : Devel\/Kit.pm/,            "ni() basic: INC Key" );
-    like( $rez, qr{INC Value : \Q$INC{"Devel/Kit.pm"}\E}, "ni() basic: INC Key" );
-    like( $rez, qr/Version   : $Devel::Kit::VERSION/,     "ni() basic: VERSION" );
+    ($rez) = ni( 'Test\'More', '_Devel::Kit_return' );
+    like( $rez, qr/^Test\'More/,                          "ni() basic: 1st line" );
+    like( $rez, qr/Normalized: Test::More/,               "ni() basic: Normalized" );
+    like( $rez, qr/Dist Name : Test-More/,                "ni() basic: Dist Name" );
+    like( $rez, qr/INC Key   : Test\/More.pm/,            "ni() basic: INC Key" );
+    like( $rez, qr{INC Value : \Q$INC{"Test/More.pm"}\E}, "ni() basic: INC Key" );
+    like( $rez, qr/Version   : $Test::More::VERSION/,     "ni() basic: VERSION" );
     is( $sys_cnt, 0, "ni() normal NS does not get to sys" );
 
-    ($rez) = ni( 'Devel::Kit', 1, '_Devel::Kit_return' );
+    ($rez) = ni( 'Test::More', 1, '_Devel::Kit_return' );
     like( $rez, qr/Class Info:/, "ni() verbose 1 == Class Info" );
     is( $sys_cnt, 3, "ni() verbose 1 gets to sys" );
 
-    ($rez) = ni( 'Devel::Kit', 2, '_Devel::Kit_return' );
+    ($rez) = ni( 'Test::More', 2, '_Devel::Kit_return' );
     like( $rez, qr/Begin Raw Diff/, "ni() verbose 1 == symbol diff" );
     is( $sys_cnt, 6, "ni() verbose 2 gets to sys" );
-
-    # TODO (not critical): no Devel::CountOps, no Capture::Tiny, neither Devel::CountOps or  Capture::Tiny'
 }
 
 {

@@ -50,7 +50,7 @@
             "JSON::Syck" : "0",
             "MIME::Base64" : "0",
             "MIME::QuotedPrint" : "0",
-            "Module::Want" : "0",
+            "Module::Want" : "0.5",
             "Net::IDN::Encode" : "0",
             "Regexp::Debugger" : "0",
             "Storable" : "0",
@@ -66,5 +66,5 @@
       }
    },
    "release_status" : "stable",
-   "version" : "0.4"
+   "version" : "0.5"
 }
