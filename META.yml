@@ -7,7 +7,7 @@ build_requires:
 configure_requires:
   ExtUtils::MakeMaker: 0
 dynamic_config: 1
-generated_by: 'ExtUtils::MakeMaker version 6.62, CPAN::Meta::Converter version 2.112150'
+generated_by: 'ExtUtils::MakeMaker version 6.64, CPAN::Meta::Converter version 2.120921'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -18,9 +18,15 @@ no_index:
     - t
     - inc
 requires:
+  Capture::Tiny: 0
   Config::INI::Reader: 0
+  Convert::Base32::Crockford: 0
   Data::Dumper: 0
   Data::MessagePack: 0
+  Devel::CountOps: 0
+  Devel::Peek: 0
+  Devel::Size: 0
+  Devel::Symdump: 0
   Digest::MD5: 0
   Digest::SHA: 0
   File::Slurp: 0
@@ -32,9 +38,14 @@ requires:
   MIME::QuotedPrint: 0
   Module::Want: 0
   Net::IDN::Encode: 0
+  Regexp::Debugger: 0
   Storable: 0
+  String::UnicodeUTF8: 0
+  Test::Mock::Cmd: 0
   Test::More: 0
+  Time::HiRes: 0
   URI::Escape: 0
+  Unix::PID::Tiny: 0
   XML::Parser: 0
   YAML::Syck: 0
-version: 0.2
+version: 0.4

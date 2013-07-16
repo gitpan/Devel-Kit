@@ -1,9 +1,14 @@
 use Test::More;
 
-use Devel::Kit;
-use File::Temp  ();
-use File::Slurp ();
+our $current_system = sub { goto &Test::Mock::Cmd::orig_system; };
+use Test::Mock::Cmd 'system' => sub { $current_system->(@_) };
 
+use Devel::Kit;
+use File::Temp    ();
+use File::Slurp   ();
+use Capture::Tiny ();
+
+use Module::Want ();
 use MIME::Base64 ();
 
 diag("Testing Devel::Kit $Devel::Kit::VERSION");
@@ -88,6 +93,8 @@ my @sum_hash = (
 my @encode_unencode_escape_unescape = (
     [ 'be', "be",                                              "debug(): Base 64: YmU=\n" ],
     [ 'bu', "YmU=",                                            "debug(): From Base 64: be\n" ],
+    [ 'ce', "42",                                              "debug(): Crockford: 6GS0\n" ],
+    [ 'cu', "6GS0",                                            "debug(): From Crockford: 42\n" ],
     [ 'ue', "I ♥ perl",                                      "debug(): URI: I%20%E2%99%A5%20perl\n" ],
     [ 'uu', "I%20%E2%99%A5%20perl",                            "debug(): From URI: I ♥ perl\n" ],
     [ 'he', qq{<I ♥ perl's " & >},                           "debug(): HTML Safe: &lt;I ♥ perl&#39;s &quot; &amp; &gt;\n" ],
@@ -102,11 +109,11 @@ my @encode_unencode_escape_unescape = (
     [ 'pu', "at-\@xn--commercial.I..perl-7na4vk1c",            "debug(): From Punycode: at\@commercial.I.♥.perl\n" ],
     [ 'pu', "at-\@xn--fullwidth.commercial.I..perl-nva47a78d", "debug(): From Punycode: at\@fullwidth.commercial.I.♥.perl\n" ],
     [ 'pu', "at-\@xn--small.commercial.I..perl-osa62av0d",     "debug(): From Punycode: at\@small.commercial.I.♥.perl\n" ],
-    [ 'se', "TODO STRING ESCAPE!",                             "debug(): TODO STRING ESCAPE!\n" ],
-    [ 'su', "TODO From STRING UNESCAPE!",                      "debug(): TODO From STRING UNESCAPE!\n" ],
+    [ 'se', "I ♥ perl's awesomeness!",                       qq{debug(): Given: I ♥ perl's awesomeness!\n\n\tmy \$bytes = "I ♥ perl\\'s awesomeness!";\n\n\tmy \$utf8 = "I \\xe2\\x99\\xa5 perl\\'s awesomeness!";\n\n\tmy \$unicode = "I \\x{2665} perl\\'s awesomeness!";\n} ],
+    [ 'su', q{I \xe2\x99\xa5 perl\\'s awesomeness!},           qq{debug(): Given: I \\xe2\\x99\\xa5 perl\\'s awesomeness!\n\tRenders: I ♥ perl's awesomeness!\n} ],
 );
 
-plan tests => 16 + ( 3 * @data_formats ) + @sum_hash + ( 6 * @strings ) + ( 6 * @filesys ) + @encode_unencode_escape_unescape;
+plan tests => 16 + ( 3 * @data_formats ) + @sum_hash + ( 6 * @strings ) + ( 6 * @filesys ) + @encode_unencode_escape_unescape + 3 + 5 + 15 + 4 + 3;
 
 my $out;
 {
@@ -273,4 +280,123 @@ for my $u (@encode_unencode_escape_unescape) {
     else {
         is( $out, $u->[2], "$u->[0]() is correct" );
     }
+}
+
+{
+  SKIP: {
+        my $have_rx;
+        Capture::Tiny::capture_stderr( sub { $have_rx = Module::Want::have_mod('Regexp::Debugger') } );    # silence CHECK block warning, this is why we do the system() in rx() …
+
+        skip "Need Regexp::Debugger to test Regexp::Debugger", 1 unless $have_rx;
+        my $sys;
+        local $current_system = sub { $sys = \@_ };
+        Devel::Kit::rx();
+        is_deeply( $sys, [ $^X, '-MRegexp::Debugger', '-e', 'Regexp::Debugger::rxrx(@ARGV)' ], "rx() calls system w/ expected values" );
+        Devel::Kit::rx( 1, 2, 3 );
+        is_deeply( $sys, [ $^X, '-MRegexp::Debugger', '-e', 'Regexp::Debugger::rxrx(@ARGV)', 1, 2, 3 ], "rx() passes args on to R::D::rxrx()" );
+    }
+
+    no warnings 'redefine';
+    local *Module::Want::have_mod = sub { $@ = "3rr0R"; return; };
+    my $rx_inc;
+    local *Devel::Kit::d = sub { $rx_inc = $_[0] };
+    Devel::Kit::rx();
+    like( $rx_inc, _inc_err_qr( 'Regexp::Debugger', '3rr0R' ), "Regexp::Debugger not available d()’s correct error" );
+}
+
+{
+    my $r = { r => 2, d => 2 };
+    my ($res) = ri( $r, '_Devel::Kit_return' );
+    like( $res, qr/debug\(\Q$r\E\) at .* line .*:\n/, "ri() begin" );
+  SKIP: {
+        skip 'Need Devel::Size to test Devel::Size', 1, unless Module::Want::have_mod('Devel::Size');
+        like( $res, qr/Devel::Size:/, "has Devel::Size output" );
+    }
+
+  SKIP: {
+        skip 'Need Devel::Size to test Devel::Size', 1, unless Module::Want::have_mod('Devel::Size');
+        skip 'Need Devel::Peek and Capture::Tiny to test Devel::Peek', 1, unless Module::Want::have_mod('Devel::Peek') && Module::Want::have_mod('Capture::Tiny');
+        like( $res, qr/Devel::Peek:/, "has Devel::Peek output" );
+    }
+
+    {
+        no warnings 'redefine';
+        local *Module::Want::have_mod = sub { $@ = "3rr0R"; return; };
+        my $rez = ri( $r, '_Devel::Kit_return' );
+        unlike( $rez, qr/Devel::Size/, 'Devel::Size quiet when not available' );
+        unlike( $rez, qr/Devel::Peek/, 'Devel::Peek quiet when not available' );
+    }
+}
+
+{
+    my $sys_cnt = 0;
+    local $current_system = sub { $sys_cnt++; goto &Test::Mock::Cmd::orig_system; };
+
+    my $have_dcp = Module::Want::have_mod('Devel::CountOps');
+    my $have_ct  = Module::Want::have_mod('Capture::Tiny');
+
+    my ($rez) = ni( 'I am not a name space.', '_Devel::Kit_return' );
+    is( $rez, "Error: ni() requires a name space\n", "ni() invalid NS error" );
+    is( $sys_cnt, 0, "ni() invalid NS does not get to sys" );
+
+    ($rez) = ni( 'Un::Load::Able::Name::SPACE::X' . $$ . 'Y', '_Devel::Kit_return' );
+    like( $rez, qr/INC Value : “Un::Load::Able::Name::SPACE::X${$}Y” is not loadable/, "ni() unloadable NS error" );
+    is( $sys_cnt, 0, "ni() unloadable NS does not get to sys" );
+
+    ($rez) = ni( 'Devel\'Kit', '_Devel::Kit_return' );
+    like( $rez, qr/^Devel\'Kit/,                          "ni() basic: 1st line" );
+    like( $rez, qr/Normalized: Devel::Kit/,               "ni() basic: Normalized" );
+    like( $rez, qr/Dist Name : Devel-Kit/,                "ni() basic: Dist Name" );
+    like( $rez, qr/INC Key   : Devel\/Kit.pm/,            "ni() basic: INC Key" );
+    like( $rez, qr{INC Value : \Q$INC{"Devel/Kit.pm"}\E}, "ni() basic: INC Key" );
+    like( $rez, qr/Version   : $Devel::Kit::VERSION/,     "ni() basic: VERSION" );
+    is( $sys_cnt, 0, "ni() normal NS does not get to sys" );
+
+    ($rez) = ni( 'Devel::Kit', 1, '_Devel::Kit_return' );
+    like( $rez, qr/Class Info:/, "ni() verbose 1 == Class Info" );
+    is( $sys_cnt, 3, "ni() verbose 1 gets to sys" );
+
+    ($rez) = ni( 'Devel::Kit', 2, '_Devel::Kit_return' );
+    like( $rez, qr/Begin Raw Diff/, "ni() verbose 1 == symbol diff" );
+    is( $sys_cnt, 6, "ni() verbose 2 gets to sys" );
+
+    # TODO (not critical): no Devel::CountOps, no Capture::Tiny, neither Devel::CountOps or  Capture::Tiny'
+}
+
+{
+    my ($rez) = ei('_Devel::Kit_return');
+
+    my $rgid = $(;
+    my $egid = $);
+    like( $rez, qr/Environment:\nPerl: v$]\nPID : $$\n\$0  : $0\n\$\^X : $^X\nCWD : .*\nRUID: $<\nEUID: $>\nRGID: $rgid\nEGID: $egid\n\@INC:\n/, 'ei() basic results' );
+
+    ($rez) = ei( 1, '_Devel::Kit_return' );
+    like( $rez, qr//, 'ei() vebose == 1 adds %ENV' );
+
+    ($rez) = ei( 2, '_Devel::Kit_return' );
+    like( $rez, qr/%ENV/, 'ei() vebose == 2 adds %ENV' );
+  SKIP: {
+        skip "Need Config.pm to test Config.pm", 1 unless Module::Want::have_mod('Config');
+        like( $rez, qr/%Config/, 'ei() vebose == 2 adds %Config' );
+    }
+
+    # TODO (not critical): no Cwd, no Unix::PID::Tiny, no Config
+}
+
+{
+    my ($rez) = ci( sub { 1 }, '_Devel::Kit_return' );
+    like( $rez, qr/CODE\(.*\) info:/, 'ni() header' );
+
+    ($rez) = ci( sub { die "Moar Fail" }, '_Devel::Kit_return' );
+    like( $rez, qr/Error: “CODE\(.*\)” failed:\n\tMoar Fail at/, 'ni() w/ fatal sub' );
+
+    ($rez) = ci( sub { 1 }, 1, '_Devel::Kit_return' );
+    like( $rez, qr/Begin Raw Diff/, "ni() verbose 1 == symbol diff" );
+
+    # TODO Moar!!! ci (Devel::Kit::_CODE::_ci())
+}
+
+sub _inc_err_qr {
+    my ( $ns, $err ) = @_;
+    return qr/Error: “$ns” could not be loaded:\n\t$err\n/;
 }

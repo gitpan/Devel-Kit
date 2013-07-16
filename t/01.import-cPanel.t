@@ -1,19 +1,18 @@
 use Test::More;
-BEGIN { eval "require Cpanel::Logger;";plan skip_all => "tests irrelevant on non-cPanel environment" if $@; };
+BEGIN { eval "require Cpanel::Logger;"; plan skip_all => "tests irrelevant on non-cPanel environment" if $@; }
 
-
-my @exported = qw(d yd jd xd sd md id pd fd dd ld ud gd bd vd ms ss be bu ue uu he hu pe pu se su qe qu);
+my @exported = qw(d yd jd xd sd md id pd fd dd ld ud gd bd vd ms ss be bu ce cu ue uu he hu pe pu se su qe qu);
 plan tests => ( scalar(@exported) * 4 ) + 2;
 
 # do these no()'s to ensure they are off before testing Devel::Kit::cPanel’s behavior regarding them
 no strict;      ## no critic
 no warnings;    ## no critic
-use Devel::Kit::cPanel qw(ni __);
+use Devel::Kit::cPanel qw(no __);
 
 diag("Testing Devel::Kit::cPanel $Devel::Kit::cPanel::VERSION");
 
 eval 'print $x;';
-ok( !$@, 'strict not enabled under “ni”' );
+ok( !$@, 'strict not enabled under “no”' );
 
 {
     my $warn = '';
@@ -21,7 +20,7 @@ ok( !$@, 'strict not enabled under “ni”' );
         $warn = join( '', @_ );
     };
     eval 'print @X[0]';
-    is( $warn, '', 'warnings not enabled under “ni”' );
+    is( $warn, '', 'warnings not enabled under “no”' );
 }
 
 for my $f (@exported) {

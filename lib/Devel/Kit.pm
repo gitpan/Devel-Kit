@@ -3,10 +3,13 @@ package Devel::Kit;
 use strict;
 use warnings;
 
-use Module::Want ();
+use Module::Want        ();
+use String::UnicodeUTF8 ();
 
-$Devel::Kit::VERSION = '0.2';
+$Devel::Kit::VERSION = '0.4';
 $Devel::Kit::fh      = \*STDOUT;
+
+my $pid;
 
 sub import {
     my $caller = caller();
@@ -20,11 +23,11 @@ sub import {
     }
 
     no strict 'refs';    ## no critic
-    for my $l (qw(d yd jd xd sd md id pd fd dd ld ud gd bd vd ms ss be bu ue uu he hu pe pu se su qe qu)) {
+    for my $l (qw(d ei rx ri ni ci yd jd xd sd md id pd fd dd ld ud gd bd vd ms ss be bu ce cu ue uu he hu pe pu se su qe qu)) {
         *{ $caller . '::' . $pre . $l } = \&{$l};
     }
 
-    unless ( grep( m/ni/, @_ ) ) {
+    unless ( grep( m/no/, @_ ) ) {
         require Import::Into;    # die here since we don't need it otherwise, so we know right off there's a problem, and so caller does not have to check status unless they want to
         strict->import::into($caller);
         warnings->import::into($caller);
@@ -105,6 +108,108 @@ sub d {
     }
 
     return;
+}
+
+sub ei {
+    my $ret = defined $_[-1] && $_[-1] eq '_Devel::Kit_return' ? 1 : 0;
+
+    my ($more) = @_;
+    $more ||= 0;
+
+    my $cwd = Module::Want::have_mod('Cwd') ? Cwd::cwd() : '??? (Cwd.pm missing)';
+    my $res = "Environment:\nPerl: v$]\nPID : $$\n\$0  : $0\n\$^X : $^X\nCWD : $cwd\nRUID: $<\nEUID: $>\nRGID: $(\nEGID: $)\n\@INC:\n" . p( \@INC );
+
+    if ( Module::Want::have_mod('Unix::PID::Tiny') ) {
+        $pid ||= Unix::PID::Tiny->new();
+        $res .= "Proc:\n" . p( { $pid->pid_info_hash($$) } );
+    }
+    else {
+        $res .= "Error: “Unix::PID::Tiny” could not be loaded:\n\t$@\n";
+    }
+
+    if ( $more ne '_Devel::Kit_return' && ( $more == 1 || $more == 2 ) ) {
+        $res .= "\%ENV:\n" . p( \%ENV );
+    }
+
+    if ( $more ne '_Devel::Kit_return' && $more == 2 ) {
+        if ( Module::Want::have_mod('Config') ) {
+
+            no warnings 'once';
+            $res .= "\%Config:" . p( \%Config::Config );
+        }
+        else {
+            $res .= "Error: “Config” could not be loaded:\n\t$@\n";
+        }
+    }
+
+    @_ = $res;
+    return @_ if $ret;
+    goto &d;
+}
+
+sub rx {
+    if ( Module::Want::have_mod('Regexp::Debugger') ) {
+
+        # can't just rxrx() here due to CHECK voodoo in Regexp::Debugger
+        system( $^X, '-MRegexp::Debugger', '-e', 'Regexp::Debugger::rxrx(@ARGV)', @_ );
+    }
+    else {
+        d("Error: “Regexp::Debugger” could not be loaded:\n\t$@\n");
+    }
+}
+
+sub ri {
+    my @caller = caller();
+    my $ret = $_[-1] eq '_Devel::Kit_return' ? 1 : 0;
+
+    @_ = "debug($_[0]) at $caller[1] line $caller[2]:\n" . p( $_[0] ) . _devel_info( $_[0] );
+
+    return @_ if $ret;
+    goto &d;
+}
+
+sub ni {
+    my $ret = $_[-1] eq '_Devel::Kit_return' ? 1 : 0;
+
+    if ( Module::Want::is_ns( $_[0] ) ) {
+        my $verbose  = ( defined $_[1] && $_[1] eq '_Devel::Kit_return' ? 0 : $_[1] );
+        my $inc_path = Module::Want::get_inc_path_via_have_mod( $_[0] );
+        my $inc_err  = $@;
+
+        @_ =
+            "$_[0]\n"
+          . "\tNormalized: "
+          . Module::Want::normalize_ns( $_[0] ) . "\n"
+          . "\tDist Name : "
+          . Module::Want::ns2distname( $_[0] ) . "\n"
+          . "\tINC Key   : "
+          . Module::Want::get_inc_key( $_[0] ) . "\n"
+          . "\tINC Value : "
+          . ( $inc_path || "“$_[0]” is not loadable:\n\t\t$inc_err" ) . "\n"
+          . ( $inc_path ? "\tVersion   : " . $_[0]->VERSION . "\n" : '' )
+          . ( $inc_path && $verbose ? "\tClass Info:\n" . _ns_info( Module::Want::normalize_ns( $_[0] ), ( $verbose == 2 ? 1 : 0 ) ) : '' );
+    }
+    else {
+        @_ = "Error: ni() requires a name space\n";
+    }
+
+    return @_ if $ret;
+    goto &d;
+}
+
+sub ci {
+    my $ret = $_[-1] eq '_Devel::Kit_return' ? 1 : 0;
+
+    if ( Module::Want::have_mod('Devel::Kit::_CODE') ) {
+        my $verbose = ( defined $_[1] && $_[1] eq '_Devel::Kit_return' ? 0 : $_[1] );
+        @_ = Devel::Kit::_CODE::_cd( $_[0], $verbose );
+    }
+    else {
+        @_ = "Error: “Devel::Kit::_CODE” could not be loaded:\n\t$@\n";
+    }
+
+    return @_ if $ret;
+    goto &d;
 }
 
 # YAML Dumper
@@ -233,7 +338,13 @@ sub fd {
         if ( Module::Want::have_mod('File::Slurp') ) {
             my $info   = _stat_struct( $_[0] );
             my $line_n = 0;
-            $info->{"13. contents"} = [ map { ++$line_n; my $l = $_; chomp($l); "$line_n: $l" } File::Slurp::read_file( $_[0] ) ];
+            my @lines  = eval { File::Slurp::read_file( $_[0] ) };
+            if ($@) {
+                $info->{"13. contents"} = "Error: read_file() failed ($@)";
+            }
+            else {
+                $info->{"13. contents"} = [ map { ++$line_n; my $l = $_; chomp($l); "$line_n: $l" } @lines ];
+            }
 
             @_ = (
                 {
@@ -264,7 +375,13 @@ sub dd {
 
         if ( Module::Want::have_mod('File::Slurp') ) {
             my $info = _stat_struct( $_[0] );
-            $info->{"13. contents"} = scalar( File::Slurp::read_dir( $_[0] ) );
+            my $list_ar = scalar( eval { File::Slurp::read_dir( $_[0] ) } );
+            if ($@) {
+                $info->{"13. contents"} = "Error: read_dir() failed ($@)";
+            }
+            else {
+                $info->{"13. contents"} = $list_ar;
+            }
 
             @_ = (
                 {
@@ -316,12 +433,7 @@ sub ld {
 # Unicode string dumper
 sub ud {
     my $ret = $_[-1] eq '_Devel::Kit_return' ? 1 : 0;
-
-    my ($unicode_string) = @_;
-
-    utf8::decode($unicode_string) if !utf8::is_utf8($unicode_string);
-    $unicode_string = _escape_bytes_or_unicode($unicode_string);
-    @_              = ("Unicode: $unicode_string");
+    @_ = ( "Unicode: " . String::UnicodeUTF8::escape_unicode( $_[0] ) );
 
     return @_ if $ret;
     goto &d;
@@ -330,12 +442,7 @@ sub ud {
 # bytes grapheme dumper
 sub gd {
     my $ret = $_[-1] eq '_Devel::Kit_return' ? 1 : 0;
-
-    my ($byte_string) = @_;
-
-    utf8::encode($byte_string) if utf8::is_utf8($byte_string);
-    $byte_string = _escape_bytes_or_unicode($byte_string);
-    @_           = ("Bytes grapheme: $byte_string");
+    @_ = ( "Bytes grapheme: " . String::UnicodeUTF8::escape_utf8( $_[0] ) );
 
     return @_ if $ret;
     goto &d;
@@ -344,10 +451,7 @@ sub gd {
 # bytes string viewer
 sub bd {
     my $ret = $_[-1] eq '_Devel::Kit_return' ? 1 : 0;
-
-    my ($byte_string) = @_;
-    utf8::encode($byte_string) if utf8::is_utf8($byte_string);
-    @_ = ("Bytes: $byte_string");
+    @_ = ( "Bytes: " . String::UnicodeUTF8::get_utf8( $_[0] ) );
 
     return @_ if $ret;
     goto &d;
@@ -359,16 +463,19 @@ sub vd {
 
     my ($s) = @_;
 
+    my $verbose = ( defined $_[1] && $_[1] eq '_Devel::Kit_return' ? 0 : $_[1] );
+
     @_ = (
 
         # tidy off
         _trim_label( bd( $s, '_Devel::Kit_return' ) ) . "\n"    # "$s\n"
           . "\tOriginal string type: "
-          . ( utf8::is_utf8($s) ? 'Unicode' : 'Byte' ) . "\n"
+          . ( String::UnicodeUTF8::is_unicode($s) ? 'Unicode' : 'Byte' ) . "\n"
           . "\tSize of data (bytes): "
-          . _bytes_size($s) . "\n"
+          . String::UnicodeUTF8::bytes_size($s) . "\n"
           . "\tNumber of characters: "
-          . _char_count($s) . "\n" . "\n"
+          . String::UnicodeUTF8::char_count($s) . "\n"
+          . ( $verbose ? _devel_info($s) : '' ) . "\n"
           . "\tUnicode Notation Str: "
           . _trim_label( ud( $s, '_Devel::Kit_return' ) ) . "\n"
           . "\tBytes Grapheme Str  : "
@@ -381,6 +488,8 @@ sub vd {
           . _trim_label( ss( $s, '_Devel::Kit_return' ) ) . "\n" . "\n"
           . "\tBase 64    : "
           . _trim_label( be( $s, '_Devel::Kit_return' ) ) . "\n"
+          . "\tCrockford  : "
+          . _trim_label( ce( $s, '_Devel::Kit_return' ) ) . "\n"
           . "\tURI        : "
           . _trim_label( ue( $s, '_Devel::Kit_return' ) ) . "\n"
           . "\tHTML       : "
@@ -409,7 +518,7 @@ sub ms {
         'Digest::MD5',
         sub {
             my ($s) = $_[0];
-            utf8::encode($s) if utf8::is_utf8($s);
+            $s = String::UnicodeUTF8::get_utf8($s);
             return "MD5 Sum: " . Digest::MD5::md5_hex($s);
         },
         @_
@@ -426,7 +535,7 @@ sub ss {
         'Digest::SHA',
         sub {
             my ($s) = $_[0];
-            utf8::encode($s) if utf8::is_utf8($s);
+            $s = String::UnicodeUTF8::get_utf8($s);
             return "SHA1 Hash: " . Digest::SHA::sha1_hex($s);
         },
         @_
@@ -445,7 +554,7 @@ sub be {
         'MIME::Base64',
         sub {
             my ($s) = $_[0];
-            utf8::encode($s) if utf8::is_utf8($s);
+            $s = String::UnicodeUTF8::get_utf8($s);
             return "Base 64: " . MIME::Base64::encode_base64( $s, '' );
         },
         @_
@@ -462,8 +571,42 @@ sub bu {
         'MIME::Base64',
         sub {
             my ($s) = $_[0];
-            utf8::encode($s) if utf8::is_utf8($s);
+            $s = String::UnicodeUTF8::get_utf8($s);
             return "From Base 64: " . MIME::Base64::decode_base64($s);
+        },
+        @_
+    );
+
+    return @_ if $ret;
+    goto &d;
+}
+
+sub ce {
+    my $ret = $_[-1] eq '_Devel::Kit_return' ? 1 : 0;
+
+    @_ = _at_setup(
+        'Convert::Base32::Crockford',
+        sub {
+            my ($s) = $_[0];
+            $s = String::UnicodeUTF8::get_utf8($s);
+            return "Crockford: " . Convert::Base32::Crockford::encode_base32($s);
+        },
+        @_
+    );
+
+    return @_ if $ret;
+    goto &d;
+}
+
+sub cu {
+    my $ret = $_[-1] eq '_Devel::Kit_return' ? 1 : 0;
+
+    @_ = _at_setup(
+        'Convert::Base32::Crockford',
+        sub {
+            my ($s) = $_[0];
+            $s = String::UnicodeUTF8::get_utf8($s);
+            return "From Crockford: " . Convert::Base32::Crockford::decode_base32($s);
         },
         @_
     );
@@ -479,7 +622,7 @@ sub ue {
         'URI::Escape',
         sub {
             my ($s) = $_[0];
-            utf8::encode($s) if utf8::is_utf8($s);
+            $s = String::UnicodeUTF8::get_utf8($s);
             return "URI: " . URI::Escape::uri_escape($s);
         },
         @_
@@ -496,7 +639,7 @@ sub uu {
         'URI::Escape',
         sub {
             my ($s) = $_[0];
-            utf8::encode($s) if utf8::is_utf8($s);
+            $s = String::UnicodeUTF8::get_utf8($s);
             return "From URI: " . URI::Escape::uri_unescape($s);
         },
         @_
@@ -513,7 +656,7 @@ sub he {
         'HTML::Entities',
         sub {
             my ($s) = $_[0];
-            utf8::encode($s) if utf8::is_utf8($s);
+            $s = String::UnicodeUTF8::get_utf8($s);
             return "HTML Safe: " . HTML::Entities::encode( $s, q{<>&"'} );
         },
         @_
@@ -530,7 +673,7 @@ sub hu {
         'HTML::Entities',
         sub {
             my ($s) = $_[0];
-            utf8::encode($s) if utf8::is_utf8($s);
+            $s = String::UnicodeUTF8::get_utf8($s);
             return "From HTML Safe: " . HTML::Entities::decode($s);
         },
         @_
@@ -547,7 +690,7 @@ sub qe {
         'MIME::QuotedPrint',
         sub {
             my ($s) = $_[0];
-            utf8::encode($s) if utf8::is_utf8($s);
+            $s = String::UnicodeUTF8::get_utf8($s);
             return "Quoted-Printable: " . MIME::QuotedPrint::encode($s);
         },
         @_
@@ -564,7 +707,7 @@ sub qu {
         'MIME::QuotedPrint',
         sub {
             my ($s) = $_[0];
-            utf8::encode($s) if utf8::is_utf8($s);
+            $s = String::UnicodeUTF8::get_utf8($s);
             return "From Quoted-Printable: " . MIME::QuotedPrint::decode($s);
         },
         @_
@@ -581,7 +724,7 @@ sub pe {
         'Net::IDN::Encode',
         sub {
             my ($s) = $_[0];
-            utf8::encode($s) if utf8::is_utf8($s);
+            $s = String::UnicodeUTF8::get_utf8($s);
 
             # See Locale::Maketext::Utils::output_encode_puny()
             if ( $s =~ m/(\@|\xef\xbc\xa0|\xef\xb9\xab)/ ) {    # U+0040, U+FF20, and U+FE6B, no need for U+E0040 right?
@@ -612,7 +755,7 @@ sub pu {
         'Net::IDN::Encode',
         sub {
             my ($s) = $_[0];
-            utf8::encode($s) if utf8::is_utf8($s);
+            $s = String::UnicodeUTF8::get_utf8($s);
 
             # See Locale::Maketext::Utils::output_decode_puny()
             if ( $s =~ m/\@/ ) {
@@ -640,13 +783,19 @@ sub pu {
 
 sub se {
     my $ret = $_[-1] eq '_Devel::Kit_return' ? 1 : 0;
-    return "TODO STRING ESCAPE!" if $ret;
+
+    @_ = "Given: $_[0]\n\n\t" . q{my $bytes = "} . String::UnicodeUTF8::quotemeta_bytes( $_[0] ) . qq{";\n\n\t} . q{my $utf8 = "} . String::UnicodeUTF8::quotemeta_utf8( $_[0] ) . qq{";\n\n\t} . q{my $unicode = "} . String::UnicodeUTF8::quotemeta_unicode( $_[0] ) . qq{";\n};
+
+    return @_ if $ret;
     goto &d;
 }
 
 sub su {
     my $ret = $_[-1] eq '_Devel::Kit_return' ? 1 : 0;
-    return "TODO From STRING UNESCAPE!" if $ret;
+
+    @_ = "Given: $_[0]\n\tRenders: " . String::UnicodeUTF8::unquotemeta_bytes( $_[0] );
+
+    return @_ if $ret;
     goto &d;
 }
 
@@ -692,47 +841,59 @@ sub _stat_struct {
     };
 }
 
-# TODO: this will be done as aseperate module eventually, patches ... forthcoming
-
-my %esc = ( "\n" => '\n', "\t" => '\t', "\r" => '\r', "\\" => '\\\\', "\a" => '\a', "\b" => '\b', "\f" => '\f' );
-
-sub _escape_bytes_or_unicode {
-    my ( $s, $no_quotemeta ) = @_;
-
-    my $is_uni = utf8::is_utf8($s);    # otherwise you'll get \xae\x{301} instead of \x{ae}\x{301}
-
-    $s =~ s{([^!#&()*+,\-.\/0123456789:;<=>?ABCDEFGHIJKLMNOPQRSTUVWXYZ\[\]\^_`abcdefghijklmnopqrstuvwxyz{|}~ ])}
-        {
-            my $chr = "$1";
-            my $n   = ord($chr);
-            if ( exists $esc{$chr} ) { # more universal way ???
-                $esc{$chr};
-            }
-            elsif ( $n < 32 || $n > 126 ) {
-                sprintf( ( !$is_uni && $n < 255 ? '\x%02x' : '\x{%x}' ), $n );
-            }
-            elsif ($no_quotemeta) {
-                $chr;
-            }
-            else {
-                quotemeta($chr);
-            }
-
-        }ge;
-
-    return $s;
+sub _devel_info {
+    my $string = '';
+    if ( Module::Want::have_mod('Devel::Size') ) {
+        $string = "\tDevel::Size:\n\t\tsize() " . Devel::Size::size( $_[0] ) . "\n" . "\t\ttotal_size() " . Devel::Size::total_size( $_[0] ) . "\n";
+    }
+    if ( Module::Want::have_mod('Devel::Peek') && Module::Want::have_mod('Capture::Tiny') ) {
+        my $peek = Capture::Tiny::capture_stderr( sub { Devel::Peek::Dump( $_[0] ) } );
+        $peek =~ s/\n/\n\t\t/msg;
+        $peek =~ s/\n\t\t$//;
+        chomp($peek);
+        $string .= "\tDevel::Peek:\n\t\t$peek" . "\n";
+    }
+    return $string;
 }
 
-sub _bytes_size {
-    my ($string) = @_;
-    utf8::encode($string) if utf8::is_utf8($string);    # is_utf8() is confusing, it really means “is this a Unicode string”, not “is this a utf-8 string)
-    return CORE::length($string);
-}
+sub _ns_info {
+    my ( $ns, $verbose_ci ) = @_;
+    $verbose_ci = $verbose_ci ? ',1' : '';
 
-sub _char_count {
-    my ($string) = @_;
-    utf8::decode($string) if !utf8::is_utf8($string);    # is_utf8() is confusing, it really means “is this a Unicode string”, not “is this a utf-8 string)
-    return CORE::length($string);
+    my $have_dcp = Module::Want::have_mod('Devel::CountOps');
+    my $have_ct  = Module::Want::have_mod('Capture::Tiny');
+
+    if ( $have_dcp && $have_ct ) {
+        my $inc = "\t\tAdds to INC:\n" . `perl -M$ns -e 'for my \$k (sort keys %INC) {print "\\t\\t\\t\$k\\n"}'`;
+
+        my $kit_lib = $INC{"Devel/Kit.pm"};
+        $kit_lib =~ s{/Devel/Kit.pm$}{};    # ick, use File::Spec
+
+        my $use = Capture::Tiny::capture_merged( sub { system(qq{$^X -I$kit_lib -mDevel::CountOps -MDevel::Kit -e 'ci(sub { eval "use $ns;1" or die \$@ }$verbose_ci)'}); } );
+        $use =~ s/.*debug\(\): CODE\(.*?\n//ms;
+        $use =~ s/\n/\n\t\t\t/msg;
+        $use =~ s/\n\t\t\t$//;
+        chomp($use);
+
+        my $noi = Capture::Tiny::capture_merged( sub { system(qq{$^X -I$kit_lib -mDevel::CountOps -MDevel::Kit -e 'ci(sub { eval "use $ns ();1" or die \$@ }$verbose_ci)'}); } );
+        $noi =~ s/.*debug\(\): CODE\(.*?\n//ms;
+        $noi =~ s/\n/\n\t\t\t/msg;
+        $noi =~ s/\n\t\t\t$//;
+        chomp($noi);
+
+        my $req = Capture::Tiny::capture_merged( sub { system(qq{$^X -I$kit_lib -mDevel::CountOps -MDevel::Kit -e 'ci(sub { eval "require $ns;1" or die \$@ }$verbose_ci)'}); } );
+        $req =~ s/.*debug\(\): CODE\(.*?\n//ms;
+        $req =~ s/\n/\n\t\t\t/msg;
+        $req =~ s/\n\t\t\t$//;
+        chomp($req);
+
+        return $inc . "\t\tuse $ns;\n\t\t\t$use\n\t\tuse $ns ();\n\t\t\t$noi\n\t\trequire $ns;\n\t\t\t$req\n";
+    }
+    else {
+        return "\t\tPlease install Capture::Tiny and Devel::CountOp.\n" if !$have_dcp && !$have_ct;
+        return "\t\tPlease install Devel::CountOp.\n"                   if !$have_dcp;
+        return "\t\tPlease install Capture::Tiny.\n"                    if !$have_ct;
+    }
 }
 
 1;
@@ -747,7 +908,7 @@ Devel::Kit - Handy toolbox of things to ease development/debugging.
 
 =head1 VERSION
 
-This document describes Devel::Kit version 0.2
+This document describes Devel::Kit version 0.4
 
 =head1 SYNOPSIS
 
@@ -808,7 +969,22 @@ From one line data dumping sanity checks to debug print statements in a large bo
 
 Hence this module was born to help give a host of functions/functionality with a minimum of typing/effort required.
 
-Any modules required for any functions are loaded if needed so no need to manage use statements!
+Any modules required for any functions are lazy loaded if needed so no need to manage use statements!
+
+=head1 SHELL ALIAS
+
+This is a handy alias I put in my shells’ profile/rc file(s) to make short debug/test commands even shorter!
+
+    alias pkit='perl -MDevel::Kit'
+
+Then you can run:
+
+    pkit -e 'vd("I ♥ perl");'
+    pkit -Mutf8 -e 'vd("I ♥ perl");'
+
+To get a better ci():
+
+    alias pkit_ops='perl -mDevel::CountOps -MDevel::Kit'
 
 =head1 (TERSE) INTERFACE
 
@@ -818,7 +994,7 @@ That is on purpose since this module is meant for one-liners and development/deb
 
 =head2 strict/warnings
 
-import() enables strict and warnings in the caller unless you pass the string “ni” to import().
+import() enables strict and warnings in the caller unless you pass the string “no” to import().
 
     use Devel::Kit; # as if you had use strict;use warnings; here
     use Devel::Kit qw(ni); # no strict/warnings
@@ -837,6 +1013,49 @@ Takes zero or more arguments to do debug info on.
 The arguments can be a scalar or any perl reference you like.
 
 It’s output is handled by L</Devel::Kit::o()> and references are stringified by L</Devel::Kit::p()>.
+
+=head3 Perly Info dumpers
+
+=head4 ci() coderef stat info
+
+Runs the given code ref and takes some measurements.
+
+    perl -MDevel::Kit -e 'ci(sub {…})'
+    perl -MDevel::Kit -e 'ci(sub {…},1)' # … also include a diff of the symbol table before and after running
+
+Caveat: Observer effect
+
+Some things might not be apparent due the current state of things. For exmample, a module might be loaded by the coderef but since it is already loaded it is not factored in the results.
+
+Caveat: You get more accurate results if Devel::CountOps is loaded during BEGIN before you call ci()
+
+You could use the pkit_ops alias or -mDevel::CountOps first:
+
+    perl -mDevel::CountOp -MDevel::Kit -e 'ci(sub {…})'
+
+=head4 ni() name space info
+
+    perl -MDevel::Kit -e 'ni('Foo::Bar')'
+    perl -MDevel::Kit -e 'ni('Foo::Bar',1)' # … also include ci() info (via system() to cut down on the 2 caveats noted for ci())
+    perl -MDevel::Kit -e 'ni('Foo::Bar',2)' # … also include verbose ci() info (via system() to cut down on the 2 caveats noted for ci())
+
+=head4 ei() environment info
+
+    perl -MDevel::Kit -e 'ei()'
+    perl -MDevel::Kit -e 'ei(1)' # … also dump %ENV
+    perl -MDevel::Kit -e 'ei(2)' # … also dump %Config
+
+=head4 ri() ref info
+
+like Devel::Kit::p() but w/ Devel::Size and/or Devel::Peek info as well
+
+    perl -MDevel::Kit -e 'ri($your_ref_here)'
+
+=head4 rx() interactive Regex debugging
+
+Lazy loaded Regexp::Debugger::rxrx() wrapper. See L<Regexp::Debugger> for more info.
+
+    perl -MDevel::Kit -e 'rx()'
 
 =head3 Data Format dumpers
 
@@ -906,7 +1125,9 @@ These can take a utf-8 or Unicode string and show the same string as the type be
 
 =head4 vd() Verbose Variations of string dumper
 
-    perl -MDevel::Kit -e 'vd($your_string_here)' 
+    perl -MDevel::Kit -e 'vd($your_string_here)'
+
+    perl -MDevel::Kit -e 'vd($your_string_here, 1)' # verbose flag shows Devel::Size and/or Devel::Peek info as possible
 
 =head3 Serialize/Sum/haSh
 
@@ -929,6 +1150,11 @@ Unicode strings are turned into utf-8 before operatign on it for consistency and
     perl -MDevel::Kit -e 'be($your_string_here)' 
     perl -MDevel::Kit -e 'bu($your_base64_here)' 
 
+=head4 ce() cu() Crockford (Base32)
+
+    perl -MDevel::Kit -e 'ce($your_string_here)' 
+    perl -MDevel::Kit -e 'cu($your_crockford_here)'
+
 =head4 ue() uu() URI
 
     perl -MDevel::Kit -e 'ue($your_string_here)' 
@@ -947,11 +1173,12 @@ Unicode strings are turned into utf-8 before operatign on it for consistency and
 =head4 qe() qu() quoted-printable
 
     perl -MDevel::Kit -e 'qe($your_string_here)' 
-    perl -MDevel::Kit -e 'qu($your_uoted_printable_here)'
+    perl -MDevel::Kit -e 'qu($your_quoted_printable_here)'
 
 =head4 se() su() String escaped for perl
 
-se() and su() will be in v0.3 or so
+    perl -MDevel::Kit -e 'se($your_string_here)' 
+    perl -MDevel::Kit -e 'su($your_escaped_for_perl_string_here)'
 
 =head2 non-imported functions
 
@@ -978,6 +1205,8 @@ Devel::Kit requires no configuration files or environment variables.
 =head1 DEPENDENCIES
 
 L<Import::Into> for the strict/warnings.
+
+L<String::UnicodeUTF8> for string fiddling
 
 L<Module::Want> to lazy load the various parsers and what not:
 
@@ -1009,6 +1238,24 @@ L<Module::Want> to lazy load the various parsers and what not:
 
 =item L<MIME::Base64>
 
+=item L<Devel::Symdump>
+
+=item L<Time::HiRes>
+
+=item L<Unix::PID::Tiny>
+
+=item L<Devel::CountOps>
+
+=item L<Devel::Size>
+
+=item L<Devel::Peek>
+
+=item L<Cwd>
+
+=item L<Config>
+
+=item L<Regexp::Debugger>
+
 =back
 
 =head1 SUBCLASSES
@@ -1035,17 +1282,11 @@ L<http://rt.cpan.org>.
 
 =over 4
 
-=item * Namespace and variable dumpers via things like L<Class::Inspector>, L<Devel::Peek>, and L<Devel::Size>.
-
 =item * *d() functions could use corresponding d*() functions (e.g. dy() would dump as YAML …)
 
 =item * Stringified Data dumpers also take path or handle in addition to a string.
 
-=item * Use Regexp::Debugger (i.e. `rxrx` to be released @ 2012 OSCON) or some other Regexp dumper.
-
 =item * string parser/dumpers make apparent what it was (i.e. YAML, XML, etc)
-
-=item * se() and su() as noted in their POD
 
 =item * Sort out punycode “standard” issues.
 

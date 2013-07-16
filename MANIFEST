@@ -16,6 +16,7 @@ t/02.functions.t
 t/03.TAP.t
 t/04.cPanel.t
 t/perlcritic.t
+t/perltidy.t
 t/pod-coverage.t
 t/pod.t
 META.yml                                 Module YAML meta-data (added by MakeMaker)

@@ -4,7 +4,7 @@
       "Daniel Muey <http://drmuey.com/cpan_contact.pl>"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "ExtUtils::MakeMaker version 6.62, CPAN::Meta::Converter version 2.112150",
+   "generated_by" : "ExtUtils::MakeMaker version 6.64, CPAN::Meta::Converter version 2.120921",
    "license" : [
       "perl_5"
    ],
@@ -22,38 +22,49 @@
    "prereqs" : {
       "build" : {
          "requires" : {
-            "ExtUtils::MakeMaker" : 0
+            "ExtUtils::MakeMaker" : "0"
          }
       },
       "configure" : {
          "requires" : {
-            "ExtUtils::MakeMaker" : 0
+            "ExtUtils::MakeMaker" : "0"
          }
       },
       "runtime" : {
          "requires" : {
-            "Config::INI::Reader" : 0,
-            "Data::Dumper" : 0,
-            "Data::MessagePack" : 0,
-            "Digest::MD5" : 0,
-            "Digest::SHA" : 0,
-            "File::Slurp" : 0,
-            "File::Temp" : 0,
-            "HTML::Entities" : 0,
-            "Import::Into" : 0,
-            "JSON::Syck" : 0,
-            "MIME::Base64" : 0,
-            "MIME::QuotedPrint" : 0,
-            "Module::Want" : 0,
-            "Net::IDN::Encode" : 0,
-            "Storable" : 0,
-            "Test::More" : 0,
-            "URI::Escape" : 0,
-            "XML::Parser" : 0,
-            "YAML::Syck" : 0
+            "Capture::Tiny" : "0",
+            "Config::INI::Reader" : "0",
+            "Convert::Base32::Crockford" : "0",
+            "Data::Dumper" : "0",
+            "Data::MessagePack" : "0",
+            "Devel::CountOps" : "0",
+            "Devel::Peek" : "0",
+            "Devel::Size" : "0",
+            "Devel::Symdump" : "0",
+            "Digest::MD5" : "0",
+            "Digest::SHA" : "0",
+            "File::Slurp" : "0",
+            "File::Temp" : "0",
+            "HTML::Entities" : "0",
+            "Import::Into" : "0",
+            "JSON::Syck" : "0",
+            "MIME::Base64" : "0",
+            "MIME::QuotedPrint" : "0",
+            "Module::Want" : "0",
+            "Net::IDN::Encode" : "0",
+            "Regexp::Debugger" : "0",
+            "Storable" : "0",
+            "String::UnicodeUTF8" : "0",
+            "Test::Mock::Cmd" : "0",
+            "Test::More" : "0",
+            "Time::HiRes" : "0",
+            "URI::Escape" : "0",
+            "Unix::PID::Tiny" : "0",
+            "XML::Parser" : "0",
+            "YAML::Syck" : "0"
          }
       }
    },
    "release_status" : "stable",
-   "version" : "0.2"
+   "version" : "0.4"
 }
