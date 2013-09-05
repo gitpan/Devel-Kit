@@ -1,6 +1,6 @@
 use Test::More;
 
-my @exported = qw(d yd jd xd sd md id pd fd dd ld ud gd bd vd ms ss be bu ce cu ue uu he hu pe pu se su qe qu);
+my @exported = qw(d yd jd xd sd md id pd fd dd ld ud gd bd vd ms ss be bu ce cu xe xu ue uu he hu pe pu se su qe qu);
 plan tests => ( scalar(@exported) * 4 ) + 2;
 
 # do these no()'s to ensure they are off before testing Devel::Kit::TAP’s behavior regarding them

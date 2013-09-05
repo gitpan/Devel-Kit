@@ -6,7 +6,7 @@ use warnings;
 use Module::Want        ();
 use String::UnicodeUTF8 ();
 
-$Devel::Kit::VERSION = '0.5';
+$Devel::Kit::VERSION = '0.6';
 $Devel::Kit::fh      = \*STDOUT;
 
 my $pid;
@@ -23,7 +23,7 @@ sub import {
     }
 
     no strict 'refs';    ## no critic
-    for my $l (qw(d ei rx ri ni ci yd jd xd sd md id pd fd dd ld ud gd bd vd ms ss be bu ce cu ue uu he hu pe pu se su qe qu)) {
+    for my $l (qw(d ei rx ri ni ci yd jd xd sd md id pd fd dd ld ud gd bd vd ms ss be bu ce cu xe xu ue uu he hu pe pu se su qe qu)) {
         *{ $caller . '::' . $pre . $l } = \&{$l};
     }
 
@@ -490,6 +490,8 @@ sub vd {
           . _trim_label( be( $s, '_Devel::Kit_return' ) ) . "\n"
           . "\tCrockford  : "
           . _trim_label( ce( $s, '_Devel::Kit_return' ) ) . "\n"
+          . "\tHex        : "
+          . _trim_label( xe( $s, $verbose, '_Devel::Kit_return' ) ) . "\n"
           . "\tURI        : "
           . _trim_label( ue( $s, '_Devel::Kit_return' ) ) . "\n"
           . "\tHTML       : "
@@ -610,6 +612,39 @@ sub cu {
         },
         @_
     );
+
+    return @_ if $ret;
+    goto &d;
+}
+
+sub xe {
+    my $ret = $_[-1] eq '_Devel::Kit_return' ? 1 : 0;
+
+    my $verbose = ( defined $_[1] && $_[1] eq '_Devel::Kit_return' ? 0 : $_[1] );
+
+    if ($verbose) {
+        @_ = "Hex: " . p(
+            [
+                map {
+                    my $c = String::UnicodeUTF8::get_utf8($_);
+                    "$c : " . unpack( "H*", $c );
+                } split( '', String::UnicodeUTF8::get_unicode( $_[0] ) )
+            ]
+        );
+        $_[0] =~ s/^\s*//;
+    }
+    else {
+        @_ = "Hex: " . unpack( "H*", String::UnicodeUTF8::get_utf8( $_[0] ) );
+    }
+
+    return @_ if $ret;
+    goto &d;
+}
+
+sub xu {
+    my $ret = $_[-1] eq '_Devel::Kit_return' ? 1 : 0;
+
+    @_ = "From Hex: " . pack 'H*', $_[0];
 
     return @_ if $ret;
     goto &d;
@@ -908,7 +943,7 @@ Devel::Kit - Handy toolbox of things to ease development/debugging.
 
 =head1 VERSION
 
-This document describes Devel::Kit version 0.5
+This document describes Devel::Kit version 0.6
 
 =head1 SYNOPSIS
 
@@ -1143,7 +1178,7 @@ Unicode strings are turned into utf-8 before summing (since you can’t sum a Un
 
 =head3 Escape/Unescape Encode/Unencode
 
-Unicode strings are turned into utf-8 before operatign on it for consistency and since some, if not all, need to operate on bytes.
+Unicode strings are turned into utf-8 before operating on it for consistency and since some, if not all, need to operate on bytes.
 
 =head4 be() bu() Base64
 
@@ -1154,6 +1189,13 @@ Unicode strings are turned into utf-8 before operatign on it for consistency and
 
     perl -MDevel::Kit -e 'ce($your_string_here)' 
     perl -MDevel::Kit -e 'cu($your_crockford_here)'
+
+=head4 xe() xu() Hex
+
+    perl -MDevel::Kit -e 'xe($your_string_here)' 
+    perl -MDevel::Kit -e 'xu($your_hex_here)'
+
+xe() takes a second boolean arg that when true dumps it as a visual mapping of each character to its hex value.
 
 =head4 ue() uu() URI
 

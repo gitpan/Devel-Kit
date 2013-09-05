@@ -95,6 +95,8 @@ my @encode_unencode_escape_unescape = (
     [ 'bu', "YmU=",                                            "debug(): From Base 64: be\n" ],
     [ 'ce', "42",                                              "debug(): Crockford: 6GS0\n" ],
     [ 'cu', "6GS0",                                            "debug(): From Crockford: 42\n" ],
+    [ 'xe', "I ♥ perl",                                      "debug(): Hex: 4920e299a5207065726c\n" ],
+    [ 'xu', "4920e299a5207065726c",                            "debug(): From Hex: I ♥ perl\n" ],
     [ 'ue', "I ♥ perl",                                      "debug(): URI: I%20%E2%99%A5%20perl\n" ],
     [ 'uu', "I%20%E2%99%A5%20perl",                            "debug(): From URI: I ♥ perl\n" ],
     [ 'he', qq{<I ♥ perl's " & >},                           "debug(): HTML Safe: &lt;I ♥ perl&#39;s &quot; &amp; &gt;\n" ],
