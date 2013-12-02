@@ -16,11 +16,20 @@ sub import {
 use Cpanel::Logger ();
 my $logger = Cpanel::Logger->new();
 
+my $a;
 {
     no warnings 'redefine';
     *Devel::Kit::o = sub {
         unshift @_, $logger;
         goto &Cpanel::Logger::info;
+    };
+
+    *Devel::Kit::a = sub {
+        if ( !$ak ) {
+            require App::Kit::cPanel;
+            $ak = App::Kit::cPanel->instance;
+        }
+        return $ak;
     };
 }
 

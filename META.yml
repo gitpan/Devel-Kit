@@ -18,6 +18,7 @@ no_index:
     - t
     - inc
 requires:
+  App::Kit: 0.6
   Capture::Tiny: 0
   Config::INI::Reader: 0
   Convert::Base32::Crockford: 0
@@ -32,6 +33,7 @@ requires:
   File::Slurp: 0
   File::Temp: 0
   HTML::Entities: 0
+  IPC::Open3::Utils: 0.91
   Import::Into: 0
   JSON::Syck: 0
   MIME::Base64: 0
@@ -48,4 +50,4 @@ requires:
   Unix::PID::Tiny: 0
   XML::Parser: 0
   YAML::Syck: 0
-version: 0.6
+version: 0.7

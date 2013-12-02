@@ -6,7 +6,7 @@ use warnings;
 use Module::Want        ();
 use String::UnicodeUTF8 ();
 
-$Devel::Kit::VERSION = '0.6';
+$Devel::Kit::VERSION = '0.7';
 $Devel::Kit::fh      = \*STDOUT;
 
 my $pid;
@@ -23,7 +23,7 @@ sub import {
     }
 
     no strict 'refs';    ## no critic
-    for my $l (qw(d ei rx ri ni ci yd jd xd sd md id pd fd dd ld ud gd bd vd ms ss be bu ce cu xe xu ue uu he hu pe pu se su qe qu)) {
+    for my $l (qw(a d ei rx ri ni ci si yd jd xd sd md id pd fd dd ld ud gd bd vd ms ss be bu ce cu xe xu ue uu he hu pe pu se su qe qu)) {
         *{ $caller . '::' . $pre . $l } = \&{$l};
     }
 
@@ -32,6 +32,16 @@ sub import {
         strict->import::into($caller);
         warnings->import::into($caller);
     }
+}
+
+my $ak;
+
+sub a {
+    if ( !$ak ) {
+        require App::Kit;
+        $ak = App::Kit->instance;
+    }
+    return $ak;
 }
 
 # output something w/ one trailing newline gauranteed
@@ -192,6 +202,59 @@ sub ni {
     else {
         @_ = "Error: ni() requires a name space\n";
     }
+
+    return @_ if $ret;
+    goto &d;
+}
+
+sub si {
+    my $ret = $_[-1] eq '_Devel::Kit_return' ? pop(@_) : 0;
+
+    @_ = _at_setup(
+        'IPC::Open3::Utils',
+        sub {
+            my $out = "Command: \n" . p( \@_ ) . "\n";
+
+            my $open3_error;
+            if (
+                !IPC::Open3::Utils::run_cmd(
+                    @_,
+                    {
+                        'open3_error' => \$open3_error,
+                        'handler'     => sub {
+                            my ( $cur_line, $stdin, $is_stderr, $is_open3_err, $short_circuit_loop_boolean_scalar_ref ) = @_;
+                            $out .= $is_stderr ? "  STDERR: $cur_line" : "  STDOUT: $cur_line";
+                            return 1;
+                        },
+                    }
+                )
+              ) {
+                $out .= "Command did not exit cleanly:\n";
+                $out .= "  \$? = $?\n  \$! = " . int($!) . " ($!)\n";
+                if ($open3_error) {
+                    chomp($open3_error);
+                    $out .= "  open3() said: $open3_error\n";
+                }
+
+                if ($?) {    # or if (!child_error_ok($?)) {
+                    $out .= "  Command failed to execute.\n" if IPC::Open3::Utils::child_error_failed_to_execute($?);
+                    $out .= "  Command seg faulted.\n"       if IPC::Open3::Utils::child_error_seg_faulted($?);
+                    $out .= "  Command core dumped.\n"       if IPC::Open3::Utils::child_error_core_dumped($?);
+                    unless ( IPC::Open3::Utils::child_error_failed_to_execute($?) ) {
+                        $out .= "  Command exited with signal: " . IPC::Open3::Utils::child_error_exit_signal($?) . ".\n";
+                        $out .= "  Command exited with value: " . IPC::Open3::Utils::child_error_exit_value($?) . ".\n";
+                    }
+                }
+            }
+            else {
+                $out .= "Command exited cleanly.\n";
+                $out .= "  \$? = $?\n  \$! = " . int($!) . " ($!)\n";
+            }
+
+            return $out;
+        },
+        @_
+    );
 
     return @_ if $ret;
     goto &d;
@@ -760,21 +823,23 @@ sub pe {
         sub {
             my ($s) = $_[0];
             $s = String::UnicodeUTF8::get_utf8($s);
+            my $res;
 
             # See Locale::Maketext::Utils::output_encode_puny()
-            if ( $s =~ m/(\@|\xef\xbc\xa0|\xef\xb9\xab)/ ) {    # U+0040, U+FF20, and U+FE6B, no need for U+E0040 right?
-                my $at = $1;
-                my ( $nam, $dom ) = split( /$at/, $s, 2 );
-
-                # TODO: ? multiple @ signs ...
-                # my ($dom,$nam) = split(/\@/,reverse($s),2);
-                # $dom = reverse($dom);
-                # $nam = reverse($nam);
-                return "Punycode: " . Net::IDN::Punycode::encode_punycode($nam) . '@xn--' . Net::IDN::Punycode::encode_punycode($dom);
+            if ( $s =~ m/(?:\@|\xef\xbc\xa0|\xef\xb9\xab)/ ) {    # U+0040, U+FF20, and U+FE6B, no need for U+E0040 right?
+                my ( $nam, $dom ) = split( /(?:\@|\xef\xbc\xa0|\xef\xb9\xab)/, $s, 2 );    # multiple @ == ???
+                utf8::decode($nam);                                                        # turn utf8 bytes into a unicode string
+                utf8::decode($dom);                                                        # turn utf8 bytes into a unicode string
+                eval { $res = Net::IDN::Encode::domain_to_ascii($nam) . '@' . Net::IDN::Encode::domain_to_ascii($dom); };
+                $res = "invalid string for punycode ($@)" if $@;
+            }
+            else {
+                utf8::decode($s);                                                          # turn utf8 bytes into a unicode string
+                eval { $res = Net::IDN::Encode::domain_to_ascii($s); };
+                $res = "invalid string for punycode ($@)" if $@;
             }
 
-            # this will act funny if there are @ symbols:
-            return "Punycode: xn--" . Net::IDN::Punycode::encode_punycode($s);
+            return "Punycode: " . $res;
         },
         @_
     );
@@ -791,23 +856,29 @@ sub pu {
         sub {
             my ($s) = $_[0];
             $s = String::UnicodeUTF8::get_utf8($s);
+            my $res;
 
             # See Locale::Maketext::Utils::output_decode_puny()
             if ( $s =~ m/\@/ ) {
-                my ( $nam, $dom ) = split( /@/, $s, 2 );
-
-                # TODO: ? multiple @ signs ...
-                # my ($dom,$nam) = split(/\@/,reverse($s),2);
-                # $dom = reverse($dom);
-                # $nam = reverse($nam);
-                $dom =~ s/^xn\--//;
-                return "From Punycode: " . Net::IDN::Punycode::decode_punycode($nam) . '@' . Net::IDN::Punycode::decode_punycode($dom);
+                my ( $nam, $dom ) = split( /@/, $s, 2 );    # multiple @ == ???
+                eval { $res = Net::IDN::Encode::domain_to_unicode($nam) . '@' . Net::IDN::Encode::domain_to_unicode($dom); };
+                if ($@) {
+                    $res = "invalid punycode ($@)";
+                }
+                else {
+                    utf8::encode($res);                     # turn unicode string back into utf8 bytes
+                }
             }
-
-            $s =~ s/^xn\--//;
-
-            # this will act funny if there are @ symbols:
-            return "From Punycode: " . Net::IDN::Punycode::decode_punycode($s);
+            else {
+                eval { $res = Net::IDN::Encode::domain_to_unicode($s); };
+                if ($@) {
+                    $res = "invalid punycode ($@)";
+                }
+                else {
+                    utf8::encode($res);                     # turn unicode string back into utf8 bytes
+                }
+            }
+            return "From Punycode: " . $res;
         },
         @_
     );
@@ -841,7 +912,7 @@ sub _at_setup {
         @_ = $_[2];
     }
     elsif ( Module::Want::have_mod( $_[0] ) ) {
-        @_ = $_[1]->( $_[2] );
+        @_ = $_[1]->( @_[ 2 .. $#_ ] );
     }
     else {
         @_ = "Error: “$_[0]” could not be loaded:\n\t$@\n";
@@ -943,18 +1014,18 @@ Devel::Kit - Handy toolbox of things to ease development/debugging.
 
 =head1 VERSION
 
-This document describes Devel::Kit version 0.6
+This document describes Devel::Kit version 0.7
 
 =head1 SYNOPSIS
 
     use Devel::Kit; # strict and warnings are now enabled
-    
+
     d($something); # d() and some other useful debug/dump functions are now availble!
-    
+
     perl -e 'print @ARGV[0];' # no warning
     perl -e 'print $x;' # no strict error
 
-    perl -MDevel::Kit -e 'print @ARGV[0];'# issues warnings: Scalar value @ARGV[0] better written as $ARGV[0] … 
+    perl -MDevel::Kit -e 'print @ARGV[0];'# issues warnings: Scalar value @ARGV[0] better written as $ARGV[0] …
     perl -MDevel::Kit -e 'print $x;' # Global symbol "$x" requires explicit package name …
 
     perl -MDevel::Kit -e 'd();d(undef);d("");d(1);d("i got here");d({a=>1},[1,2,3],"yo",\"howdy");ud("I \x{2665} perl");bd("I \xe2\x99\xa5 perl");gd("I ♥ perl");'
@@ -963,9 +1034,9 @@ See where you are or are not getting to in a program and why, for example via th
 
     + d(1);
     + d(\$foo);
-    
+
     bar();
-    
+
     if ($foo) {
     +    d(2);
         …
@@ -977,7 +1048,7 @@ See where you are or are not getting to in a program and why, for example via th
     + d(4);
 
 If it outputs 1, $foo’s true value, 3,4 you know to also dump $foo after bar() since it acts like bar() is modifying $foo (action at a distance). If $foo is false after the call to bar() then you can add debug statements to bar() to see where specifically $foo is fiddled with.
-     
+
 Visually see if a string is a byte string or a Unicode string:
 
     perl -MDevel::Kit -e 'd(\$string);'
@@ -996,7 +1067,7 @@ If it is a Unicode string the \x{} codepoint notation will be present, if it is 
     [dmuey@multivac Devel-Kit]$ perl -Mutf8 -MDevel::Kit -e 'd(\"I ♥ perl");'
     debug() ref(SCALAR(0x100804ff0)) at -e line 1:
     	\"I \x{2665} perl"
-    [dmuey@multivac Devel-Kit]$ 
+    [dmuey@multivac Devel-Kit]$
 
 =head1 DESCRIPTION
 
@@ -1040,6 +1111,12 @@ import() enables strict and warnings in the caller unless you pass the string �
 =head2 imported functions
 
 If you already have a function by these names you can pass "_" to import() which will import them all w/ an underscore prepended. You can pass "__" to have it prepend 2, "___" to prepend 3, ad infinitum.
+
+=head3 a() App::Kit
+
+You can get a lazy loaded and reused L<App::Kit> object via a().
+
+    pkit -e 'd( a->ctype->get_ctype_of_ext(".pm") )'
 
 =head3 d() General debug/dump
 
@@ -1086,6 +1163,14 @@ like Devel::Kit::p() but w/ Devel::Size and/or Devel::Peek info as well
 
     perl -MDevel::Kit -e 'ri($your_ref_here)'
 
+=head4 si() system command info
+
+    perl -MDevel::Kit -e 'si(@system_cmd)'
+
+Execute’s @system_cmd, displays its output labeled as STDOUT/STDERR, and describes its child error and errno states.
+
+Currently there is no interface to the command’s STDIN but it could be added, let me know if you’d find that useful.
+
 =head4 rx() interactive Regex debugging
 
 Lazy loaded Regexp::Debugger::rxrx() wrapper. See L<Regexp::Debugger> for more info.
@@ -1094,37 +1179,37 @@ Lazy loaded Regexp::Debugger::rxrx() wrapper. See L<Regexp::Debugger> for more i
 
 =head3 Data Format dumpers
 
-If a function ends in “d” it is a dumper. Each takes one argument, the string in the format we’re dumping. 
+If a function ends in “d” it is a dumper. Each takes one argument, the string in the format we’re dumping.
 
 Like d() it’s output is handled by L</Devel::Kit::o()> and references are stringified by L</Devel::Kit::p()>.
 
 =head4 yd() YAML dumper
 
-    perl -MDevel::Kit -e 'yd($your_yaml_here)' 
+    perl -MDevel::Kit -e 'yd($your_yaml_here)'
 
 =head4 jd() JSON dumper
 
-    perl -MDevel::Kit -e 'jd($your_json_here)' 
+    perl -MDevel::Kit -e 'jd($your_json_here)'
 
 =head4 xd() XML dumper
 
-    perl -MDevel::Kit -e 'xd($your_xml_here)' 
+    perl -MDevel::Kit -e 'xd($your_xml_here)'
 
 =head4 sd() Storable dumper
 
-    perl -MDevel::Kit -e 'sd($your_storable_here)' 
+    perl -MDevel::Kit -e 'sd($your_storable_here)'
 
 =head4 id() INI dumper
 
-    perl -MDevel::Kit -e 'id($your_ini_here)' 
+    perl -MDevel::Kit -e 'id($your_ini_here)'
 
 =head4 md() MessagePack dumper
 
-    perl -MDevel::Kit -e 'md($your_message_pack_here)' 
+    perl -MDevel::Kit -e 'md($your_message_pack_here)'
 
 =head4 pd() Perl (stringified) dumper
 
-    perl -MDevel::Kit -e 'pd($your_stringified_perl_structure_here)' 
+    perl -MDevel::Kit -e 'pd($your_stringified_perl_structure_here)'
 
 =head3 File system
 
@@ -1132,15 +1217,15 @@ These dump information about the path given.
 
 =head4 fd() File dumper
 
-    perl -MDevel::Kit -e 'fd($your_file_here)' 
+    perl -MDevel::Kit -e 'fd($your_file_here)'
 
 =head4 dd() Directory dumper
 
-    perl -MDevel::Kit -e 'dd($your_directory_here)' 
+    perl -MDevel::Kit -e 'dd($your_directory_here)'
 
 =head4 ld() Link dumper (i.e. symlinks)
 
-    perl -MDevel::Kit -e 'ld($your_symlink_here)' 
+    perl -MDevel::Kit -e 'ld($your_symlink_here)'
 
 =head3 String Representations
 
@@ -1148,15 +1233,15 @@ These can take a utf-8 or Unicode string and show the same string as the type be
 
 =head4 ud() Unicode string dumper
 
-    perl -MDevel::Kit -e 'ud($your_string_here)' 
+    perl -MDevel::Kit -e 'ud($your_string_here)'
 
 =head4 bd() Byte string utf-8 dumper
 
-    perl -MDevel::Kit -e 'bd($your_string_here)' 
+    perl -MDevel::Kit -e 'bd($your_string_here)'
 
 =head4 gd() Grapheme byte string utf-8 dumper
 
-    perl -MDevel::Kit -e 'gd($your_string_here)' 
+    perl -MDevel::Kit -e 'gd($your_string_here)'
 
 =head4 vd() Verbose Variations of string dumper
 
@@ -1170,11 +1255,11 @@ Unicode strings are turned into utf-8 before summing (since you can’t sum a Un
 
 =head4 ms() MD5
 
-    perl -MDevel::Kit -e 'ms($your_string_here)' 
+    perl -MDevel::Kit -e 'ms($your_string_here)'
 
 =head4 ss() SHA1
 
-    perl -MDevel::Kit -e 'ss($your_string_here)' 
+    perl -MDevel::Kit -e 'ss($your_string_here)'
 
 =head3 Escape/Unescape Encode/Unencode
 
@@ -1182,44 +1267,44 @@ Unicode strings are turned into utf-8 before operating on it for consistency and
 
 =head4 be() bu() Base64
 
-    perl -MDevel::Kit -e 'be($your_string_here)' 
-    perl -MDevel::Kit -e 'bu($your_base64_here)' 
+    perl -MDevel::Kit -e 'be($your_string_here)'
+    perl -MDevel::Kit -e 'bu($your_base64_here)'
 
 =head4 ce() cu() Crockford (Base32)
 
-    perl -MDevel::Kit -e 'ce($your_string_here)' 
+    perl -MDevel::Kit -e 'ce($your_string_here)'
     perl -MDevel::Kit -e 'cu($your_crockford_here)'
 
 =head4 xe() xu() Hex
 
-    perl -MDevel::Kit -e 'xe($your_string_here)' 
+    perl -MDevel::Kit -e 'xe($your_string_here)'
     perl -MDevel::Kit -e 'xu($your_hex_here)'
 
 xe() takes a second boolean arg that when true dumps it as a visual mapping of each character to its hex value.
 
 =head4 ue() uu() URI
 
-    perl -MDevel::Kit -e 'ue($your_string_here)' 
+    perl -MDevel::Kit -e 'ue($your_string_here)'
     perl -MDevel::Kit -e 'uu($your_uri_here)'
 
 =head4 he() hu() HTML
 
-    perl -MDevel::Kit -e 'he($your_string_here)' 
+    perl -MDevel::Kit -e 'he($your_string_here)'
     perl -MDevel::Kit -e 'hu($your_html_here)'
 
 =head4 pe() pu() Punycode string
 
-    perl -MDevel::Kit -e 'pe($your_string_here)' 
+    perl -MDevel::Kit -e 'pe($your_string_here)'
     perl -MDevel::Kit -e 'pu($your_punycode_here)'
 
 =head4 qe() qu() quoted-printable
 
-    perl -MDevel::Kit -e 'qe($your_string_here)' 
+    perl -MDevel::Kit -e 'qe($your_string_here)'
     perl -MDevel::Kit -e 'qu($your_quoted_printable_here)'
 
 =head4 se() su() String escaped for perl
 
-    perl -MDevel::Kit -e 'se($your_string_here)' 
+    perl -MDevel::Kit -e 'se($your_string_here)'
     perl -MDevel::Kit -e 'su($your_escaped_for_perl_string_here)'
 
 =head2 non-imported functions
@@ -1228,7 +1313,7 @@ Feel free to override these with your own if you need different behavior.
 
 =head3 Devel::Kit::o()
 
-Outputs the first and only arg. 
+Outputs the first and only arg.
 
 Goes to STDOUT and gaurantees it ends in one newline.
 
@@ -1324,13 +1409,13 @@ L<http://rt.cpan.org>.
 
 =over 4
 
+=item * auto-detect and switch to correct subclass
+
 =item * *d() functions could use corresponding d*() functions (e.g. dy() would dump as YAML …)
 
 =item * Stringified Data dumpers also take path or handle in addition to a string.
 
 =item * string parser/dumpers make apparent what it was (i.e. YAML, XML, etc)
-
-=item * Sort out punycode “standard” issues.
 
 =back
 

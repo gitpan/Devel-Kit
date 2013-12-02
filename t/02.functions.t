@@ -91,31 +91,35 @@ my @sum_hash = (
 );
 
 my @encode_unencode_escape_unescape = (
-    [ 'be', "be",                                              "debug(): Base 64: YmU=\n" ],
-    [ 'bu', "YmU=",                                            "debug(): From Base 64: be\n" ],
-    [ 'ce', "42",                                              "debug(): Crockford: 6GS0\n" ],
-    [ 'cu', "6GS0",                                            "debug(): From Crockford: 42\n" ],
-    [ 'xe', "I ♥ perl",                                      "debug(): Hex: 4920e299a5207065726c\n" ],
-    [ 'xu', "4920e299a5207065726c",                            "debug(): From Hex: I ♥ perl\n" ],
-    [ 'ue', "I ♥ perl",                                      "debug(): URI: I%20%E2%99%A5%20perl\n" ],
-    [ 'uu', "I%20%E2%99%A5%20perl",                            "debug(): From URI: I ♥ perl\n" ],
-    [ 'he', qq{<I ♥ perl's " & >},                           "debug(): HTML Safe: &lt;I ♥ perl&#39;s &quot; &amp; &gt;\n" ],
-    [ 'hu', "&lt;I ♥ perl&apos;s &quot; &amp; &gt;",         qq{debug(): From HTML Safe: <I ♥ perl's " & >\n} ],
-    [ 'qe', "I ♥ perl",                                      "debug(): Quoted-Printable: I =E2=99=A5 perl=\n" ],
-    [ 'qu', "I =E2=99=A5 perl=",                               "debug(): From Quoted-Printable: I ♥ perl=\n" ],
-    [ 'pe', "I.♥.perl",                                      "debug(): Punycode: xn--I..perl-1fa2io1a\n" ],
-    [ 'pe', 'at@commercial.I.♥.perl',                        "debug(): Punycode: at-\@xn--commercial.I..perl-7na4vk1c\n" ],
-    [ 'pe', 'at＠fullwidth.commercial.I.♥.perl',            "debug(): Punycode: at-\@xn--fullwidth.commercial.I..perl-nva47a78d\n" ],
-    [ 'pe', 'at﹫small.commercial.I.♥.perl',                "debug(): Punycode: at-\@xn--small.commercial.I..perl-osa62av0d\n" ],
-    [ 'pu', "xn--I..perl-1fa2io1a",                            "debug(): From Punycode: I.♥.perl\n" ],
-    [ 'pu', "at-\@xn--commercial.I..perl-7na4vk1c",            "debug(): From Punycode: at\@commercial.I.♥.perl\n" ],
-    [ 'pu', "at-\@xn--fullwidth.commercial.I..perl-nva47a78d", "debug(): From Punycode: at\@fullwidth.commercial.I.♥.perl\n" ],
-    [ 'pu', "at-\@xn--small.commercial.I..perl-osa62av0d",     "debug(): From Punycode: at\@small.commercial.I.♥.perl\n" ],
-    [ 'se', "I ♥ perl's awesomeness!",                       qq{debug(): Given: I ♥ perl's awesomeness!\n\n\tmy \$bytes = "I ♥ perl\\'s awesomeness!";\n\n\tmy \$utf8 = "I \\xe2\\x99\\xa5 perl\\'s awesomeness!";\n\n\tmy \$unicode = "I \\x{2665} perl\\'s awesomeness!";\n} ],
-    [ 'su', q{I \xe2\x99\xa5 perl\\'s awesomeness!},           qq{debug(): Given: I \\xe2\\x99\\xa5 perl\\'s awesomeness!\n\tRenders: I ♥ perl's awesomeness!\n} ],
+    [ 'be', "be",                                      "debug(): Base 64: YmU=\n" ],
+    [ 'bu', "YmU=",                                    "debug(): From Base 64: be\n" ],
+    [ 'ce', "42",                                      "debug(): Crockford: 6GS0\n" ],
+    [ 'cu', "6GS0",                                    "debug(): From Crockford: 42\n" ],
+    [ 'xe', "I ♥ perl",                              "debug(): Hex: 4920e299a5207065726c\n" ],
+    [ 'xu', "4920e299a5207065726c",                    "debug(): From Hex: I ♥ perl\n" ],
+    [ 'ue', "I ♥ perl",                              "debug(): URI: I%20%E2%99%A5%20perl\n" ],
+    [ 'uu', "I%20%E2%99%A5%20perl",                    "debug(): From URI: I ♥ perl\n" ],
+    [ 'he', qq{<I ♥ perl's " & >},                   "debug(): HTML Safe: &lt;I ♥ perl&#39;s &quot; &amp; &gt;\n" ],
+    [ 'hu', "&lt;I ♥ perl&apos;s &quot; &amp; &gt;", qq{debug(): From HTML Safe: <I ♥ perl's " & >\n} ],
+    [ 'qe', "I ♥ perl",                              "debug(): Quoted-Printable: I =E2=99=A5 perl=\n" ],
+    [ 'qu', "I =E2=99=A5 perl=",                       "debug(): From Quoted-Printable: I ♥ perl=\n" ],
+    [ 'pe', "I.♥.perl",                              "debug(): Punycode: I.xn--g6h.perl\n" ],
+    [ 'pe', 'at@commercial.I.♥.perl',                "debug(): Punycode: at\@commercial.I.xn--g6h.perl\n" ],
+    [ 'pe', 'at＠fullwidth.commercial.I.♥.perl',    "debug(): Punycode: at\@fullwidth.commercial.I.xn--g6h.perl\n" ],
+    [ 'pe', 'at﹫small.commercial.I.♥.perl',        "debug(): Punycode: at\@small.commercial.I.xn--g6h.perl\n" ],
+    [ 'pu', "I.xn--g6h.perl",                          "debug(): From Punycode: i.♥.perl\n" ],                                                                                                                                                                                  # rt 91059 ? the i is lc’d ? - its supposed to be domain not arbitrary string
+    [ 'pu', "at\@commercial.I.xn--g6h.perl",           "debug(): From Punycode: at\@commercial.i.♥.perl\n" ],                                                                                                                                                                   # rt 91059 ? the i is lc’d ? - its supposed to be domain not arbitrary string
+    [ 'pu', "at\@fullwidth.commercial.I.xn--g6h.perl", "debug(): From Punycode: at\@fullwidth.commercial.i.♥.perl\n" ],                                                                                                                                                         # rt 91059 ? the i is lc’d ? - its supposed to be domain not arbitrary string
+    [ 'pu', "at\@small.commercial.I.xn--g6h.perl",     "debug(): From Punycode: at\@small.commercial.i.♥.perl\n" ],                                                                                                                                                             # rt 91059 ? the i is lc’d ? - its supposed to be domain not arbitrary string
+    [ 'se', "I ♥ perl's awesomeness!",               qq{debug(): Given: I ♥ perl's awesomeness!\n\n\tmy \$bytes = "I ♥ perl\\'s awesomeness!";\n\n\tmy \$utf8 = "I \\xe2\\x99\\xa5 perl\\'s awesomeness!";\n\n\tmy \$unicode = "I \\x{2665} perl\\'s awesomeness!";\n} ],
+    [ 'su', q{I \xe2\x99\xa5 perl\\'s awesomeness!},   qq{debug(): Given: I \\xe2\\x99\\xa5 perl\\'s awesomeness!\n\tRenders: I ♥ perl's awesomeness!\n} ],
 );
 
-plan tests => 16 + ( 3 * @data_formats ) + @sum_hash + ( 6 * @strings ) + ( 6 * @filesys ) + @encode_unencode_escape_unescape + 3 + 5 + 15 + 4 + 3;
+plan tests => 18 + ( 3 * @data_formats ) + @sum_hash + ( 6 * @strings ) + ( 6 * @filesys ) + @encode_unencode_escape_unescape + 3 + 5 + 15 + 4 + 3 + 9;
+
+my $ak = a;
+isa_ok( $ak, 'App::Kit', 'a() returns App-Kit obj' );
+is( a, $ak, 'a() returns same obj' );
 
 my $out;
 {
@@ -395,6 +399,38 @@ for my $u (@encode_unencode_escape_unescape) {
     like( $rez, qr/Begin Raw Diff/, "ni() verbose 1 == symbol diff" );
 
     # TODO Moar!!! ci (Devel::Kit::_CODE::_ci())
+}
+
+{
+  SKIP: {
+        skip "Need IPC::Open3::Utils to test si()", 9, unless Module::Want::have_mod('IPC::Open3::Utils');
+        local $? = 0;
+        local $! = 0;
+        no warnings 'redefine';
+        local *IPC::Open3::Utils::run_cmd = sub {
+            pop @_;
+            is_deeply( \@_, [qw(true bar baz 42)], 'correct args passed to run_cmd()' );
+        };
+        my $called = 0;
+        local *Devel::Kit::d = sub {
+            $called++;
+        };
+
+        my ($rez) = si( qw(true bar baz 42), '_Devel::Kit_return' );
+        like( $rez, qr/Command:/,                 'returns under _Devel::Kit_return' );
+        like( $rez, qr/Command exited cleanly\./, 'says it exited cleanly when it does' );
+        like( $rez, qr/  \$\? = 0/,               'clean exit shows \$?' );
+        like( $rez, qr/  \$\! = 0 \(/,            'clean exit shows \$!' );
+        is( $called, 0, 'd() not called under _Devel::Kit_return' );
+
+        ($rez) = si(qw(true bar baz 42));
+        is( $rez,    0, 'does not return under _Devel::Kit_return' );
+        is( $called, 1, 'd() called when not under _Devel::Kit_return' );
+
+        # TODO: check various outputs depending on $! and $?
+        # *IPC::Open3::Utils::run_cmd = sub { $? = 256; $! = 9; };
+
+    }
 }
 
 sub _inc_err_qr {
