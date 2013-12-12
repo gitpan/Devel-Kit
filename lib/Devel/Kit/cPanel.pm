@@ -2,7 +2,7 @@ package Devel::Kit::cPanel;
 
 use strict;
 use warnings;
-$Devel::Kit::cPanel::VERSION = '0.1';
+$Devel::Kit::cPanel::VERSION = '0.2';
 
 use base 'Devel::Kit';
 @Devel::Kit::cPanel::ISA = ('Devel::Kit');
@@ -16,7 +16,7 @@ sub import {
 use Cpanel::Logger ();
 my $logger = Cpanel::Logger->new();
 
-my $a;
+my $ak;
 {
     no warnings 'redefine';
     *Devel::Kit::o = sub {
@@ -45,7 +45,7 @@ Devel::Kit::cPanel - cPanel friendly version of Devel::Kit (A handy toolbox of t
 
 =head1 VERSION
 
-This document describes Devel::Kit::cPanel version 0.1
+This document describes Devel::Kit::cPanel version 0.2
 
 =head1 SYNOPSIS
 

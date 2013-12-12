@@ -6,7 +6,7 @@ use warnings;
 use Module::Want        ();
 use String::UnicodeUTF8 ();
 
-$Devel::Kit::VERSION = '0.7';
+$Devel::Kit::VERSION = '0.8';
 $Devel::Kit::fh      = \*STDOUT;
 
 my $pid;
@@ -1014,7 +1014,7 @@ Devel::Kit - Handy toolbox of things to ease development/debugging.
 
 =head1 VERSION
 
-This document describes Devel::Kit version 0.7
+This document describes Devel::Kit version 0.8
 
 =head1 SYNOPSIS
 
@@ -1103,10 +1103,10 @@ That is on purpose since this module is meant for one-liners and development/deb
 import() enables strict and warnings in the caller unless you pass the string “no” to import().
 
     use Devel::Kit; # as if you had use strict;use warnings; here
-    use Devel::Kit qw(ni); # no strict/warnings
+    use Devel::Kit qw(no); # no strict/warnings
 
     perl -MDevel::Kit -e 'print @ARGV[0];print $x;' # triggers strict/warnings
-    perl -MDevel::Kit=ni -e 'print @ARGV[0];print $x;' # no strict/warnings happen
+    perl -MDevel::Kit=no -e 'print @ARGV[0];print $x;' # no strict/warnings happen
 
 =head2 imported functions
 
@@ -1137,7 +1137,7 @@ Runs the given code ref and takes some measurements.
 
 Caveat: Observer effect
 
-Some things might not be apparent due the current state of things. For exmample, a module might be loaded by the coderef but since it is already loaded it is not factored in the results.
+Some things might not be apparent due the current state of things. For example, a module might be loaded by the coderef but since it is already loaded it is not factored in the results.
 
 Caveat: You get more accurate results if Devel::CountOps is loaded during BEGIN before you call ci()
 
