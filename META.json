@@ -52,11 +52,11 @@
             "JSON::Syck" : "0",
             "MIME::Base64" : "0",
             "MIME::QuotedPrint" : "0",
-            "Module::Want" : "0.5",
+            "Module::Want" : "0.6",
             "Net::IDN::Encode" : "0",
             "Regexp::Debugger" : "0",
             "Storable" : "0",
-            "String::UnicodeUTF8" : "0",
+            "String::UnicodeUTF8" : "0.21",
             "Test::Mock::Cmd" : "0",
             "Test::More" : "0",
             "Time::HiRes" : "0",
@@ -68,5 +68,5 @@
       }
    },
    "release_status" : "stable",
-   "version" : "0.8"
+   "version" : "0.81"
 }

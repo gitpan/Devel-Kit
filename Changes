@@ -1,5 +1,14 @@
 Revision history for Devel-Kit
 
+0.81 Sun Dec 15 11:31:47 2013
+    - add missing 0.8 Changes entry
+    - update required ver of Module::Want to latest silly-DIE-handler safe version
+    - update required ver of String::UnicodeUTF8 to latest Unicode zero padding \x{} version
+
+0.8  Wed Dec 11 21:42:99 2013
+    - 2 minor POD fixes
+    - correct variable name
+
 0.7  Sun Dec  1 20:38:42 2013
     - add a()
     - improve punycode logic

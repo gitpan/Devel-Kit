@@ -14,8 +14,8 @@ WriteMakefile(
         'File::Temp'      => 0,    # for testing, I know I know: Test::XT
         'Test::Mock::Cmd' => 0,    # for testing, I know I know: Test::XT
 
-        'Module::Want'        => 0.5,
-        'String::UnicodeUTF8' => 0,
+        'Module::Want'        => 0.6,
+        'String::UnicodeUTF8' => 0.21,
 
         # lazy loaded (via Module::Want) only when needed
         'Import::Into' => 0,
